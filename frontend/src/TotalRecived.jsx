@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 export default function TotalRecived({
   token,
   onUnauthorized,
-  totalRecived,
   setTotalRecived
 }) {
   const [input, setInput] = useState("");
@@ -71,12 +70,10 @@ export default function TotalRecived({
           onKeyDown={handleReceivedKeyDown}
         />
 
-        <button onClick={addAmount}>
+        <button className="btn btn-primary" onClick={addAmount}>
           Add Received Amount
         </button>
       </div>
-
-      <p className="income-total">Total Received: ₹{totalRecived}</p>
     </div>
   );
 }

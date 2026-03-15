@@ -1,5 +1,7 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap");
+
 :root {
-  font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+  font-family: "Manrope", "Segoe UI", sans-serif;
   line-height: 1.5;
   font-weight: 400;
   font-synthesis: none;
@@ -18,4 +20,8 @@ body,
   width: 100%;
   min-height: 100%;
   margin: 0;
+}
+
+body {
+  color: #0f172a;
 }
