@@ -21,7 +21,8 @@ mongoose.connection.once("open", () => {
 const ExpenseSchema = new mongoose.Schema({
   userId: String,
   title: String,
-  amount: Number
+  amount: Number,
+  category: { type: String, default: "Other" }
 });
 
 const Expense = mongoose.model("Expense", ExpenseSchema);
@@ -116,7 +117,8 @@ app.post("/expenses", authMiddleware, async (req, res) => {
   const expense = new Expense({
     userId: req.userId,
     title: req.body.title,
-    amount: Number(req.body.amount)
+    amount: Number(req.body.amount),
+    category: req.body.category || "Other"
   });
 
   if (!expense.title || Number.isNaN(expense.amount)) {

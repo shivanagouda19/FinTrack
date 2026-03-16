@@ -1,5 +1,3 @@
-import { PieChart, Pie, Cell, Legend, Tooltip } from 'recharts';
-
 const CATEGORY_COLORS = {
   Food: '#f97316',
   Travel: '#3b82f6',
@@ -30,11 +28,25 @@ function ExpenseChart({ expenses }) {
 
   const categoryTotals = expenses.reduce((acc, expense) => {
     const category = expense.category || 'Other';
-    acc[category] = (acc[category] || 0) + (expense.amount || 0);
+    acc[category] = (acc[category] || 0) + Number(expense.amount || 0);
     return acc;
   }, {});
 
   const data = Object.entries(categoryTotals).map(([name, value]) => ({ name, value }));
+  const total = data.reduce((sum, d) => sum + d.value, 0);
+
+  // Build conic-gradient segments for pie
+  let cumulative = 0;
+  const segments = data.map((d) => {
+    const pct = (d.value / total) * 100;
+    const start = cumulative;
+    cumulative += pct;
+    return { ...d, pct, start };
+  });
+
+  const conicGradient = segments
+    .map((s) => `${CATEGORY_COLORS[s.name] || CATEGORY_COLORS.Other} ${s.start.toFixed(1)}% ${(s.start + s.pct).toFixed(1)}%`)
+    .join(', ');
 
   return (
     <div style={{
@@ -43,37 +55,48 @@ function ExpenseChart({ expenses }) {
       border: '1px solid var(--border)',
       background: 'var(--surface-1)',
     }}>
-      <h3 style={{ margin: '0 0 20px', fontSize: '1.05rem', fontWeight: 600, color: 'var(--text-1)' }}>
+      <h3 style={{ margin: '0 0 24px', fontSize: '1.05rem', fontWeight: 600, color: 'var(--text-1)' }}>
         Spending by Category
       </h3>
 
-      {/* Fixed height div instead of ResponsiveContainer — fixes invisible chart bug */}
-      <div style={{ width: '100%', height: 300, display: 'flex', justifyContent: 'center' }}>
-        <PieChart width={500} height={300}>
-          <Pie
-            data={data}
-            cx="50%"
-            cy="50%"
-            outerRadius={110}
-            dataKey="value"
-            labelLine={false}
-            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-          >
-            {data.map((entry) => (
-              <Cell key={entry.name} fill={CATEGORY_COLORS[entry.name] || CATEGORY_COLORS.Other} />
-            ))}
-          </Pie>
-          <Tooltip
-            contentStyle={{
-              background: 'var(--surface-2)',
-              border: '1px solid var(--border-hi)',
-              borderRadius: 'var(--radius-sm)',
-              color: 'var(--text-1)'
-            }}
-            formatter={(value) => `₹${value}`}
-          />
-          <Legend wrapperStyle={{ color: 'var(--text-2)' }} />
-        </PieChart>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '40px', flexWrap: 'wrap' }}>
+        {/* Pie */}
+        <div style={{
+          width: '200px',
+          height: '200px',
+          borderRadius: '50%',
+          background: `conic-gradient(${conicGradient})`,
+          flexShrink: 0,
+          boxShadow: '0 4px 24px rgba(0,0,0,0.3)'
+        }} />
+
+        {/* Legend */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
+          {segments.map((s) => (
+            <div key={s.name} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{
+                width: '12px', height: '12px', borderRadius: '3px', flexShrink: 0,
+                background: CATEGORY_COLORS[s.name] || CATEGORY_COLORS.Other
+              }} />
+              <span style={{ color: 'var(--text-1)', fontSize: '0.9rem', flex: 1 }}>{s.name}</span>
+              <span style={{ color: 'var(--text-2)', fontSize: '0.85rem' }}>₹{s.value}</span>
+              <span style={{
+                fontSize: '0.78rem', fontWeight: 600,
+                color: CATEGORY_COLORS[s.name] || CATEGORY_COLORS.Other
+              }}>
+                {s.pct.toFixed(1)}%
+              </span>
+            </div>
+          ))}
+          <div style={{
+            marginTop: '8px', paddingTop: '12px',
+            borderTop: '1px solid var(--border)',
+            display: 'flex', justifyContent: 'space-between'
+          }}>
+            <span style={{ color: 'var(--text-2)', fontSize: '0.85rem' }}>Total</span>
+            <span style={{ color: 'var(--text-1)', fontWeight: 700 }}>₹{total}</span>
+          </div>
+        </div>
       </div>
     </div>
   );
