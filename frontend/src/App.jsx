@@ -1,14 +1,11 @@
 import { useEffect, useState } from "react";
-import Expense from "./Expense";
-import DigitalClock from "./DigitalClock";
-import TotalBalance from "./TotalBalance";
-import TotalRecived from "./TotalRecived";
-import TotalReceivedCard from "./TotalReceivedCard";
-import TotalSpent from "./TotalSpent";
-import ExpenseChart from "./ExpenseChart";
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import Sidebar from './components/Sidebar';
+import Dashboard from './components/Dashboard';
+import ExpensePage from './components/ExpensePage';
+import IncomePage from './components/IncomePage';
 import "./App.css";
 
-// ── Icon helpers ──────────────────────────────────────────
 const MoonIcon = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
     stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -31,16 +28,6 @@ const SunIcon = () => (
   </svg>
 );
 
-const LogoutIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-    <polyline points="16 17 21 12 16 7"/>
-    <line x1="21" y1="12" x2="9" y2="12"/>
-  </svg>
-);
-
-// ── App ───────────────────────────────────────────────────
 function App() {
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem("theme");
@@ -106,15 +93,14 @@ function App() {
     setTotalRecived(0);
   }
 
-  // ── Auth Screen ──────────────────────────────────────────
   if (!token) {
     return (
       <div className="app-shell" data-theme={theme}>
-        <div className="app auth-app">
-          <div className="top-controls">
+        <div className="app auth-app" style={{ maxWidth: '460px', margin: '0 auto', padding: '40px 20px' }}>
+          <div style={{ marginBottom: '20px', textAlign: 'right' }}>
             <button className="btn btn-secondary theme-toggle" onClick={toggleTheme}>
               {theme === "dark" ? <SunIcon /> : <MoonIcon />}
-              {theme === "dark" ? "Light mode" : "Dark mode"}
+              {theme === "dark" ? "Light" : "Dark"}
             </button>
           </div>
 
@@ -158,68 +144,28 @@ function App() {
     );
   }
 
-  // ── Dashboard ────────────────────────────────────────────
   return (
-    <>
-    <div className="app-shell" data-theme={theme}>
-      <div className="app">
-
-        {/* Top bar */}
-        <div className="top-controls">
-          <button className="btn btn-secondary theme-toggle" onClick={toggleTheme}>
-            {theme === "dark" ? <SunIcon /> : <MoonIcon />}
-            {theme === "dark" ? "Light mode" : "Dark mode"}
-          </button>
-          <button className="btn btn-secondary logout-button" onClick={logout}>
-            <LogoutIcon /> Logout
-          </button>
+    <BrowserRouter>
+      <div className="app-shell" data-theme={theme}>
+        <Sidebar onLogout={logout} theme={theme} toggleTheme={toggleTheme} />
+        <div className="main-content">
+          <Routes>
+            <Route path="/" element={<Dashboard expenses={expenses} totalRecived={totalRecived} />} />
+            <Route path="/expenses" element={<ExpensePage token={token} onUnauthorized={logout} expenses={expenses} setExpenses={setExpenses} />} />
+            <Route path="/income" element={<IncomePage token={token} onUnauthorized={logout} setTotalRecived={setTotalRecived} />} />
+            <Route path="/upcoming" element={
+              <div className="app">
+                <header className="app-header dashboard-header">
+                  <h1>Upcoming Payments</h1>
+                  <p>Coming soon...</p>
+                </header>
+              </div>
+            } />
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
         </div>
-
-        {/* Header */}
-        <header className="app-header dashboard-header">
-          <h1>Expense Tracker</h1>
-          <p>Financial dashboard — income, spending &amp; net balance</p>
-          <DigitalClock />
-        </header>
-
-        {/* Summary row */}
-        <section className="summary-section">
-          <p className="section-kicker">Overview</p>
-          <div className="summary-grid">
-            <TotalSpent expenses={expenses} />
-            <TotalReceivedCard totalRecived={totalRecived} />
-            <TotalBalance expenses={expenses} totalRecived={totalRecived} />
-          </div>
-        </section>
-
-        {/* Expense Chart */}
-        <ExpenseChart expenses={expenses} />
-
-        {/* Transactions */}
-        <section className="dashboard-section">
-          <p className="section-kicker">Transactions</p>
-          <div className="dashboard-grid">
-            <div className="card panel-expense">
-              <Expense
-                token={token}
-                onUnauthorized={logout}
-                expenses={expenses}
-                setExpenses={setExpenses}
-              />
-            </div>
-            <div className="card panel-income">
-              <TotalRecived
-                token={token}
-                onUnauthorized={logout}
-                setTotalRecived={setTotalRecived}
-              />
-            </div>
-          </div>
-        </section>
-
       </div>
-    </div>
-    </>
+    </BrowserRouter>
   );
 }
 
