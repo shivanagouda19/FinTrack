@@ -63,6 +63,10 @@ function Sidebar({ onLogout, theme, toggleTheme }) {
           <span>📅</span>
           <span>Upcoming</span>
         </NavLink>
+        <NavLink to="/calendar" className="nav-link">
+          <span>📅</span>
+          <span>Calendar</span>
+        </NavLink>
       </nav>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: 'auto' }}>

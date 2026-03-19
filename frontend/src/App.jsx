@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
+import TopBar from './components/TopBar';
 import Dashboard from './components/Dashboard';
 import ExpensePage from './components/ExpensePage';
 import IncomePage from './components/IncomePage';
+import UpcomingPayments from './pages/UpcomingPayments';
+import CalendarPage from './pages/CalendarPage';
 import "./App.css";
 
 const MoonIcon = () => (
@@ -36,6 +39,8 @@ function App() {
   });
 
   const [expenses, setExpenses] = useState([]);
+  const [incomeList, setIncomeList] = useState([]);
+  const [urgentAlerts, setUrgentAlerts] = useState([]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoginMode, setIsLoginMode] = useState(true);
@@ -44,6 +49,50 @@ function App() {
   const [totalRecived, setTotalRecived] = useState(0);
 
   useEffect(() => { localStorage.setItem("theme", theme); }, [theme]);
+
+  function fetchAlerts() {
+    if (!token) return;
+    fetch('http://localhost:5000/upcoming', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (!Array.isArray(data)) return;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const urgent = data.filter(p => {
+          if (p.status === 'Paid') return false;
+          const due = new Date(p.dueDate);
+          due.setHours(0, 0, 0, 0);
+          const diff = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
+          return diff <= 3;
+        });
+        setUrgentAlerts(urgent);
+      });
+  }
+
+  useEffect(() => { fetchAlerts(); }, [token]);
+
+  useEffect(() => {
+    if (!token) return;
+
+    // Fetch expenses
+    fetch('http://localhost:5000/expenses', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => res.status === 401 ? logout() : res.json())
+      .then(data => Array.isArray(data) && setExpenses(data))
+      .catch(() => {});
+
+    // Fetch total received
+    fetch('http://localhost:5000/received', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => res.status === 401 ? logout() : res.json())
+      .then(data => data?.totalReceived && setTotalRecived(data.totalReceived))
+      .catch(() => {});
+
+  }, [token]);
 
   function toggleTheme() {
     setTheme(prev => prev === "light" ? "dark" : "light");
@@ -90,6 +139,7 @@ function App() {
     localStorage.removeItem("token");
     setToken("");
     setExpenses([]);
+    setIncomeList([]);
     setTotalRecived(0);
   }
 
@@ -148,19 +198,14 @@ function App() {
     <BrowserRouter>
       <div className="app-shell" data-theme={theme}>
         <Sidebar onLogout={logout} theme={theme} toggleTheme={toggleTheme} />
+        {token && <TopBar token={token} alerts={urgentAlerts} />}
         <div className="main-content">
           <Routes>
             <Route path="/" element={<Dashboard expenses={expenses} totalRecived={totalRecived} />} />
             <Route path="/expenses" element={<ExpensePage token={token} onUnauthorized={logout} expenses={expenses} setExpenses={setExpenses} />} />
-            <Route path="/income" element={<IncomePage token={token} onUnauthorized={logout} setTotalRecived={setTotalRecived} />} />
-            <Route path="/upcoming" element={
-              <div className="app">
-                <header className="app-header dashboard-header">
-                  <h1>Upcoming Payments</h1>
-                  <p>Coming soon...</p>
-                </header>
-              </div>
-            } />
+            <Route path="/income" element={<IncomePage token={token} onUnauthorized={logout} setTotalRecived={setTotalRecived} incomeList={incomeList} setIncomeList={setIncomeList} />} />
+            <Route path="/upcoming" element={<UpcomingPayments token={token} onUnauthorized={logout} onPaymentChange={fetchAlerts} />} />
+            <Route path="/calendar" element={<CalendarPage token={token} onUnauthorized={logout} />} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </div>

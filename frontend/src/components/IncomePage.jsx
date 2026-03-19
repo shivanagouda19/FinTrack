@@ -1,6 +1,6 @@
 import TotalRecived from '../TotalRecived';
 
-function IncomePage({ token, onUnauthorized, setTotalRecived }) {
+function IncomePage({ token, onUnauthorized, setTotalRecived, incomeList, setIncomeList }) {
   return (
     <div className="app">
       <header className="app-header dashboard-header">
@@ -14,6 +14,8 @@ function IncomePage({ token, onUnauthorized, setTotalRecived }) {
             token={token}
             onUnauthorized={onUnauthorized}
             setTotalRecived={setTotalRecived}
+            incomeList={incomeList}
+            setIncomeList={setIncomeList}
           />
         </div>
       </section>

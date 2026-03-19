@@ -28,6 +28,16 @@ const ExpenseSchema = new mongoose.Schema({
 
 const Expense = mongoose.model("Expense", ExpenseSchema);
 
+const IncomeSchema = new mongoose.Schema({
+  userId: String,
+  title: String,
+  amount: Number,
+  source: { type: String, default: "Other" },
+  createdAt: { type: Date, default: Date.now }
+});
+
+const Income = mongoose.model("Income", IncomeSchema);
+
 const SummarySchema = new mongoose.Schema({
   key: { type: String, unique: true },
   userId: String,
@@ -35,6 +45,18 @@ const SummarySchema = new mongoose.Schema({
 });
 
 const Summary = mongoose.model("Summary", SummarySchema);
+
+const UpcomingPaymentSchema = new mongoose.Schema({
+  userId: String,
+  name: String,
+  amount: Number,
+  dueDate: Date,
+  type: { type: String, enum: ['Bill', 'Debt'], default: 'Bill' },
+  status: { type: String, enum: ['Pending', 'Paid'], default: 'Pending' },
+  createdAt: { type: Date, default: Date.now }
+});
+
+const UpcomingPayment = mongoose.model('UpcomingPayment', UpcomingPaymentSchema);
 
 function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization;
@@ -182,6 +204,101 @@ app.put("/expenses/:id", authMiddleware, async (req, res) => {
   }
 
   res.json(updated);
+});
+
+// Income routes
+app.get("/income", authMiddleware, async (req, res) => {
+  const data = await Income.find({ userId: req.userId });
+  res.json(data);
+});
+
+app.post("/income", authMiddleware, async (req, res) => {
+  const income = new Income({
+    userId: req.userId,
+    title: req.body.title,
+    amount: Number(req.body.amount),
+    source: req.body.source || "Other"
+  });
+
+  if (!income.title || Number.isNaN(income.amount)) {
+    return res.status(400).json({ error: "Invalid income" });
+  }
+
+  await income.save();
+  res.json(income);
+});
+
+app.delete("/income/:id", authMiddleware, async (req, res) => {
+  const removed = await Income.findOneAndDelete({ _id: req.params.id, userId: req.userId });
+
+  if (!removed) {
+    return res.status(404).json({ error: "Income not found" });
+  }
+
+  res.json({ success: true });
+});
+
+app.put("/income/:id", authMiddleware, async (req, res) => {
+  const updated = await Income.findOneAndUpdate(
+    { _id: req.params.id, userId: req.userId },
+    {
+      title: req.body.title,
+      amount: Number(req.body.amount),
+      source: req.body.source || "Other"
+    },
+    { new: true }
+  );
+
+  if (!updated) {
+    return res.status(404).json({ error: "Income not found" });
+  }
+
+  res.json(updated);
+});
+
+// Get all upcoming payments
+app.get('/upcoming', authMiddleware, async (req, res) => {
+  const data = await UpcomingPayment.find({ userId: req.userId }).sort({ dueDate: 1 });
+  res.json(data);
+});
+
+// Add upcoming payment
+app.post('/upcoming', authMiddleware, async (req, res) => {
+  const payment = new UpcomingPayment({
+    userId: req.userId,
+    name: req.body.name,
+    amount: Number(req.body.amount),
+    dueDate: new Date(req.body.dueDate),
+    type: req.body.type || 'Bill',
+    status: 'Pending'
+  });
+  await payment.save();
+  res.json(payment);
+});
+
+// Mark as paid or update payment
+app.put('/upcoming/:id', authMiddleware, async (req, res) => {
+  const updateData = {};
+  if (req.body.status) updateData.status = req.body.status;
+  if (req.body.name) updateData.name = req.body.name;
+  if (req.body.amount) updateData.amount = Number(req.body.amount);
+  if (req.body.dueDate) updateData.dueDate = new Date(req.body.dueDate);
+  if (req.body.type) updateData.type = req.body.type;
+
+  const updated = await UpcomingPayment.findOneAndUpdate(
+    { _id: req.params.id, userId: req.userId },
+    updateData,
+    { new: true }
+  );
+  if (!updated) return res.status(404).json({ error: 'Not found' });
+  res.json(updated);
+});
+
+// Delete upcoming payment
+app.delete('/upcoming/:id', authMiddleware, async (req, res) => {
+  const removed = await UpcomingPayment.findOneAndDelete({ _id: req.params.id, userId: req.userId });
+  if (!removed) return res.status(404).json({ error: 'Not found' });
+  res.json({ success: true });
 });
 
 // start server

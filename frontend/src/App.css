@@ -630,6 +630,11 @@ button { font-family: var(--font-body); }
   .main-content {
     margin-left: 0;
     margin-bottom: 70px;
+    padding-top: 32px;
+  }
+
+  .top-bar {
+    left: 0 !important;
   }
 }
 
@@ -657,6 +662,7 @@ button { font-family: var(--font-body); }
   margin-left: 220px;
   flex: 1;
   padding: 32px;
+  padding-top: 88px;
 }
 
 .nav-link {
