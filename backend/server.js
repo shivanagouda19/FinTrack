@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require("express");
 const mongoose = require("mongoose");
 const User = require("./models/User");
@@ -473,6 +474,99 @@ app.delete('/income/all', authMiddleware, async (req, res) => {
     res.json({ message: 'All income history cleared' });
   } catch {
     res.status(500).json({ error: 'Could not clear income history' });
+  }
+});
+
+// AI Budget Advisor
+app.post('/ai/insights', authMiddleware, async (req, res) => {
+  try {
+    const { expenses, totalReceived, totalSpent } = req.body;
+
+    const prompt = `You are a personal finance advisor. Analyze this user's expense data and give 4-5 short, practical, personalized insights and tips. Be specific with numbers. Keep each insight to 1-2 sentences. Use simple language.
+
+Data:
+- Total Income: Rs.${totalReceived}
+- Total Spent: Rs.${totalSpent}
+- Balance: Rs.${totalReceived - totalSpent}
+- Expenses: ${JSON.stringify(expenses.map(e => ({ title: e.title, amount: e.amount, category: e.category || 'Other' })))}
+
+Return ONLY a JSON array of insight objects like this, no other text, no markdown, no backticks:
+[{"type":"warning","icon":"⚠️","message":"insight text"},{"type":"tip","icon":"💡","message":"insight text"},{"type":"good","icon":"✅","message":"insight text"}]
+where type is warning for bad spending habits, good for positive observations, tip for actionable advice.`;
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-002:generateContent?key=${process.env.GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 1024,
+        }
+      })
+    });
+
+    const data = await response.json();
+    console.log('Gemini response:', JSON.stringify(data, null, 2));
+    
+    if (!data.candidates || data.candidates.length === 0) {
+      console.log('No candidates in response:', data);
+      return res.json({ insights: [] });
+    }
+
+    const text = data.candidates[0]?.content?.parts[0]?.text || '[]';
+    console.log('Raw text from Gemini:', text);
+    
+    const clean = text.replace(/```json|```/g, '').trim();
+    const insights = JSON.parse(clean);
+    res.json({ insights });
+  } catch (err) {
+    console.log('Error in insights route:', err);
+    res.status(500).json({ error: 'Could not generate insights' });
+  }
+});
+
+// Bank Statement Importer
+app.post('/ai/import', authMiddleware, async (req, res) => {
+  try {
+    const { statement } = req.body;
+
+    const prompt = `You are a bank statement parser. Parse this Indian bank statement text and extract individual transactions that are EXPENSES (money going out, debits, payments, UPI payments, purchases).
+
+Statement:
+${statement}
+
+Return ONLY a JSON array, no other text:
+[
+  {
+    "title": "merchant/description name",
+    "amount": number,
+    "category": "Food/Travel/Shopping/Bills/Health/Other"
+  }
+]
+
+Rules:
+- Only include debit/expense transactions, skip credits/income
+- Amount should be a positive number
+- Guess the category based on merchant name
+- Keep title short and clean
+- If no expenses found, return empty array []`;
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-002:generateContent?key=${process.env.GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }]
+      })
+    });
+
+    const data = await response.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
+    const clean = text.replace(/```json|```/g, '').trim();
+    const transactions = JSON.parse(clean);
+    res.json({ transactions });
+  } catch (err) {
+    res.status(500).json({ error: 'Could not parse statement' });
   }
 });
 

@@ -3,8 +3,10 @@ import TotalBalance from '../TotalBalance';
 import TotalReceivedCard from '../TotalReceivedCard';
 import TotalSpent from '../TotalSpent';
 import ExpenseChart from '../ExpenseChart';
+import AIInsights from './AIInsights';
 
-function Dashboard({ expenses, totalRecived }) {
+function Dashboard({ expenses, totalRecived, token }) {
+  const totalSpent = expenses.reduce((s, e) => s + e.amount, 0);
   return (
     <div className="app">
       <header className="app-header dashboard-header">
@@ -23,6 +25,13 @@ function Dashboard({ expenses, totalRecived }) {
       </section>
 
       <ExpenseChart expenses={expenses} />
+
+      <AIInsights
+        token={token}
+        expenses={expenses}
+        totalReceived={totalRecived}
+        totalSpent={totalSpent}
+      />
     </div>
   );
 }

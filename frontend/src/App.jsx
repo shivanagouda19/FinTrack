@@ -203,7 +203,7 @@ function App() {
         {token && <TopBar token={token} alerts={urgentAlerts} theme={theme} toggleTheme={toggleTheme} />}
         <div className="main-content">
           <Routes>
-            <Route path="/" element={<Dashboard expenses={expenses} totalRecived={totalRecived} />} />
+            <Route path="/" element={<Dashboard expenses={expenses} totalRecived={totalRecived} token={token} />} />
             <Route path="/expenses" element={<ExpensePage token={token} onUnauthorized={logout} expenses={expenses} setExpenses={setExpenses} />} />
             <Route path="/income" element={<IncomePage token={token} onUnauthorized={logout} setTotalRecived={setTotalRecived} incomeList={incomeList} setIncomeList={setIncomeList} />} />
             <Route path="/upcoming" element={<UpcomingPayments token={token} onUnauthorized={logout} onPaymentChange={fetchAlerts} />} />
