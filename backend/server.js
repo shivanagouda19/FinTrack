@@ -6,7 +6,9 @@ const app = express();
 const cors = require("cors");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 const JWT_SECRET = process.env.JWT_SECRET || "SECRET_KEY";
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 app.use(cors());
 app.use(express.json());
@@ -17,6 +19,8 @@ mongoose.connect("mongodb://127.0.0.1:27017/expenses");
 mongoose.connection.once("open", () => {
   console.log("MongoDB connected");
 });
+
+console.log('Using Model:', process.env.GEMINI_MODEL || "gemini-2.5-flash");
 
 // schema
 const ExpenseSchema = new mongoose.Schema({
@@ -87,6 +91,29 @@ function authMiddleware(req, res, next) {
     next();
   } catch {
     return res.status(401).json({ error: "Invalid token" });
+  }
+}
+
+async function generateGeminiText(prompt, generationConfig = {}) {
+  try {
+    if (!process.env.GEMINI_API_KEY) {
+      throw new Error("Missing GEMINI_API_KEY in backend .env");
+    }
+
+    const model = genAI.getGenerativeModel({
+      model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
+      generationConfig: { responseMimeType: 'application/json' }
+    });
+    const result = await model.generateContent({
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig,
+    });
+
+    const response = await result.response;
+    return response.text() || "[]";
+  } catch (error) {
+    console.error("Gemini API error:", error?.message || error);
+    throw error;
   }
 }
 
@@ -490,39 +517,28 @@ Data:
 - Balance: Rs.${totalReceived - totalSpent}
 - Expenses: ${JSON.stringify(expenses.map(e => ({ title: e.title, amount: e.amount, category: e.category || 'Other' })))}
 
-Return ONLY a JSON array of insight objects like this, no other text, no markdown, no backticks:
-[{"type":"warning","icon":"⚠️","message":"insight text"},{"type":"tip","icon":"💡","message":"insight text"},{"type":"good","icon":"✅","message":"insight text"}]
-where type is warning for bad spending habits, good for positive observations, tip for actionable advice.`;
+Return the analysis as a single JSON object with a key named "insight". Do not include any other text or explanation.`;
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-002:generateContent?key=${process.env.GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 1024,
-        }
-      })
-    });
-
-    const data = await response.json();
-    console.log('Gemini response:', JSON.stringify(data, null, 2));
-    
-    if (!data.candidates || data.candidates.length === 0) {
-      console.log('No candidates in response:', data);
-      return res.json({ insights: [] });
+    try {
+      const text = await generateGeminiText(prompt, {
+        temperature: 0.7,
+        maxOutputTokens: 2048,
+      });
+      
+      const cleanJson = text.replace(/```json|```/g, '').trim();
+      const parsed = JSON.parse(cleanJson);
+      const insights = parsed?.insight || [];
+      res.json({ insights });
+    } catch (genErr) {
+      if (genErr?.status === 429 || genErr?.message?.includes('quota')) {
+        console.log('Quota exceeded for insights:', genErr?.message || genErr);
+        return res.status(429).json({ error: 'API quota exceeded. Please try again later.' });
+      }
+      throw genErr;
     }
-
-    const text = data.candidates[0]?.content?.parts[0]?.text || '[]';
-    console.log('Raw text from Gemini:', text);
-    
-    const clean = text.replace(/```json|```/g, '').trim();
-    const insights = JSON.parse(clean);
-    res.json({ insights });
   } catch (err) {
-    console.log('Error in insights route:', err);
-    res.status(500).json({ error: 'Could not generate insights' });
+    console.log('Error in insights route:', err?.message || err);
+    res.status(500).json({ error: 'Could not generate insights. Please try again later.' });
   }
 });
 
@@ -552,21 +568,21 @@ Rules:
 - Keep title short and clean
 - If no expenses found, return empty array []`;
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-002:generateContent?key=${process.env.GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }]
-      })
-    });
-
-    const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
-    const clean = text.replace(/```json|```/g, '').trim();
-    const transactions = JSON.parse(clean);
-    res.json({ transactions });
+    try {
+      const text = await generateGeminiText(prompt);
+      const cleanJson = text.replace(/```json|```/g, '').trim();
+      const transactions = JSON.parse(cleanJson);
+      res.json({ transactions });
+    } catch (genErr) {
+      if (genErr?.status === 429 || genErr?.message?.includes('quota')) {
+        console.log('Quota exceeded for import:', genErr?.message || genErr);
+        return res.status(429).json({ error: 'API quota exceeded. Please try again later.' });
+      }
+      throw genErr;
+    }
   } catch (err) {
-    res.status(500).json({ error: 'Could not parse statement' });
+    console.log('Error in import route:', err?.message || err);
+    res.status(500).json({ error: 'Could not parse statement. Please try again later.' });
   }
 });
 
