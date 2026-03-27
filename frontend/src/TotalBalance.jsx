@@ -19,7 +19,7 @@ export default function TotalBalance({
         </span>
         <span>Total Balance</span>
       </div>
-      <strong>₹{balance}</strong>
+      <strong>₹{Math.round(balance)}</strong>
     </div>
   );
 }

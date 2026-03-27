@@ -1,3 +1,4 @@
+//sever.js
 require('dotenv').config();
 const express = require("express");
 const mongoose = require("mongoose");
@@ -181,7 +182,7 @@ app.post("/expenses", authMiddleware, async (req, res) => {
   const expense = new Expense({
     userId: req.userId,
     title: req.body.title,
-    amount: Number(req.body.amount),
+    amount: Math.round(Number(req.body.amount)),
     category: req.body.category || "Other"
   });
 
@@ -193,30 +194,14 @@ app.post("/expenses", authMiddleware, async (req, res) => {
   res.json(expense);
 });
 
-app.get("/received", authMiddleware, async (req, res) => {
-  const summaryKey = `user:${req.userId}`;
-  const summary = await Summary.findOne({ key: summaryKey });
-  res.json({ totalReceived: summary?.totalReceived || 0 });
-});
-
-app.post("/received", authMiddleware, async (req, res) => {
-  const amount = Number(req.body.amount);
-  const summaryKey = `user:${req.userId}`;
-
-  if (Number.isNaN(amount)) {
-    return res.status(400).json({ error: "Invalid amount" });
+// Clear all expenses (BEFORE :id routes)
+app.delete('/expenses/all', authMiddleware, async (req, res) => {
+  try {
+    await Expense.deleteMany({ userId: req.userId });
+    res.json({ message: 'All expenses cleared' });
+  } catch {
+    res.status(500).json({ error: 'Could not clear expenses' });
   }
-
-  const summary = await Summary.findOneAndUpdate(
-    { key: summaryKey },
-    {
-      $inc: { totalReceived: amount },
-      $setOnInsert: { key: summaryKey, userId: req.userId }
-    },
-    { new: true, upsert: true }
-  );
-
-  res.json({ totalReceived: summary.totalReceived });
 });
 
 app.delete("/expenses/:id", authMiddleware, async (req, res) => {
@@ -234,7 +219,7 @@ app.put("/expenses/:id", authMiddleware, async (req, res) => {
     { _id: req.params.id, userId: req.userId },
     {
       title: req.body.title,
-      amount: Number(req.body.amount),
+      amount: Math.round(Number(req.body.amount)),
       category: req.body.category || "Other"
     },
     { new: true }
@@ -267,6 +252,16 @@ app.post("/income", authMiddleware, async (req, res) => {
 
   await income.save();
   res.json(income);
+});
+
+// Clear all income history (BEFORE :id routes)
+app.delete('/income/all', authMiddleware, async (req, res) => {
+  try {
+    await Income.deleteMany({ userId: req.userId });
+    res.json({ message: 'All income history cleared' });
+  } catch {
+    res.status(500).json({ error: 'Could not clear income history' });
+  }
 });
 
 app.delete("/income/:id", authMiddleware, async (req, res) => {
@@ -335,6 +330,16 @@ app.put('/upcoming/:id', authMiddleware, async (req, res) => {
   res.json(updated);
 });
 
+// Clear all upcoming payments (BEFORE :id routes)
+app.delete('/upcoming/all', authMiddleware, async (req, res) => {
+  try {
+    await UpcomingPayment.deleteMany({ userId: req.userId });
+    res.json({ message: 'All upcoming payments cleared' });
+  } catch {
+    res.status(500).json({ error: 'Could not clear upcoming payments' });
+  }
+});
+
 // Delete upcoming payment
 app.delete('/upcoming/:id', authMiddleware, async (req, res) => {
   const removed = await UpcomingPayment.findOneAndDelete({ _id: req.params.id, userId: req.userId });
@@ -395,6 +400,16 @@ app.put('/goals/:id', authMiddleware, async (req, res) => {
   }
 });
 
+// Clear all goals (BEFORE :id routes)
+app.delete('/goals/all', authMiddleware, async (req, res) => {
+  try {
+    await Goal.deleteMany({ userId: req.userId });
+    res.json({ message: 'All goals cleared' });
+  } catch {
+    res.status(500).json({ error: 'Could not clear goals' });
+  }
+});
+
 // Delete goal
 app.delete('/goals/:id', authMiddleware, async (req, res) => {
   try {
@@ -403,16 +418,6 @@ app.delete('/goals/:id', authMiddleware, async (req, res) => {
     res.json({ success: true });
   } catch {
     res.status(500).json({ error: 'Could not delete goal' });
-  }
-});
-
-// Clear all goals (for profile reset)
-app.delete('/goals/all', authMiddleware, async (req, res) => {
-  try {
-    await Goal.deleteMany({ userId: req.userId });
-    res.json({ message: 'All goals cleared' });
-  } catch {
-    res.status(500).json({ error: 'Could not clear goals' });
   }
 });
 
@@ -446,19 +451,10 @@ app.get('/profile', authMiddleware, async (req, res) => {
   }
 });
 
-// Clear all expenses
-app.delete('/expenses/all', authMiddleware, async (req, res) => {
-  try {
-    await Expense.deleteMany({ userId: req.userId });
-    res.json({ message: 'All expenses cleared' });
-  } catch {
-    res.status(500).json({ error: 'Could not clear expenses' });
-  }
-});
-
 // Reset income
 app.put('/received/reset', authMiddleware, async (req, res) => {
   try {
+    await Income.deleteMany({ userId: req.userId });
     const summaryKey = `user:${req.userId}`;
     await Summary.findOneAndUpdate(
       { key: summaryKey },
@@ -471,36 +467,45 @@ app.put('/received/reset', authMiddleware, async (req, res) => {
   }
 });
 
-// Clear all upcoming payments
-app.delete('/upcoming/all', authMiddleware, async (req, res) => {
-  try {
-    await UpcomingPayment.deleteMany({ userId: req.userId });
-    res.json({ message: 'All upcoming payments cleared' });
-  } catch {
-    res.status(500).json({ error: 'Could not clear upcoming payments' });
+// Get received
+app.get("/received", authMiddleware, async (req, res) => {
+  const summaryKey = `user:${req.userId}`;
+  const summary = await Summary.findOne({ key: summaryKey });
+  res.json({ totalReceived: summary?.totalReceived || 0 });
+});
+
+app.post("/received", authMiddleware, async (req, res) => {
+  const amount = Number(req.body.amount);
+  const summaryKey = `user:${req.userId}`;
+
+  if (Number.isNaN(amount)) {
+    return res.status(400).json({ error: "Invalid amount" });
   }
+
+  const summary = await Summary.findOneAndUpdate(
+    { key: summaryKey },
+    {
+      $inc: { totalReceived: amount },
+      $setOnInsert: { key: summaryKey, userId: req.userId }
+    },
+    { new: true, upsert: true }
+  );
+
+  res.json({ totalReceived: summary.totalReceived });
 });
 
 // Delete account
 app.delete('/account', authMiddleware, async (req, res) => {
   try {
     await Expense.deleteMany({ userId: req.userId });
+    await Income.deleteMany({ userId: req.userId });
     await Summary.deleteMany({ userId: req.userId });
     await UpcomingPayment.deleteMany({ userId: req.userId });
+    await Goal.deleteMany({ userId: req.userId });
     await User.findByIdAndDelete(req.userId);
     res.json({ message: 'Account deleted successfully' });
   } catch {
     res.status(500).json({ error: 'Could not delete account' });
-  }
-});
-
-// Clear all income history
-app.delete('/income/all', authMiddleware, async (req, res) => {
-  try {
-    await Income.deleteMany({ userId: req.userId });
-    res.json({ message: 'All income history cleared' });
-  } catch {
-    res.status(500).json({ error: 'Could not clear income history' });
   }
 });
 
@@ -520,15 +525,20 @@ Data:
 Return the analysis as a single JSON object with a key named "insight". Do not include any other text or explanation.`;
 
     try {
-      const text = await generateGeminiText(prompt, {
+      const model = genAI.getGenerativeModel({
+        model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
+      });
+
+      const modelResult = await model.generateContent({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: {
         temperature: 0.7,
         maxOutputTokens: 2048,
+        },
       });
-      
-      const cleanJson = text.replace(/```json|```/g, '').trim();
-      const parsed = JSON.parse(cleanJson);
-      const insights = parsed?.insight || [];
-      res.json({ insights });
+
+      const result = await modelResult.response;
+      res.json({ insight: result.text() });
     } catch (genErr) {
       if (genErr?.status === 429 || genErr?.message?.includes('quota')) {
         console.log('Quota exceeded for insights:', genErr?.message || genErr);
@@ -547,26 +557,22 @@ app.post('/ai/import', authMiddleware, async (req, res) => {
   try {
     const { statement } = req.body;
 
-    const prompt = `You are a bank statement parser. Parse this Indian bank statement text and extract individual transactions that are EXPENSES (money going out, debits, payments, UPI payments, purchases).
+    const prompt = `You are a bank statement parser for Indian bank accounts. Extract ONLY expense/debit transactions from this statement.
 
 Statement:
 ${statement}
 
-Return ONLY a JSON array, no other text:
-[
-  {
-    "title": "merchant/description name",
-    "amount": number,
-    "category": "Food/Travel/Shopping/Bills/Health/Other"
-  }
-]
+STRICT RULES:
+- ONLY include transactions where money was SPENT or DEBITED (UPI/DR, ATM WDL, NEFT/DR, purchases, payments)
+- SKIP any transaction that is a CREDIT, INCOME, SALARY, REFUND, CASHBACK, or money RECEIVED
+- SKIP transactions with keywords: CR, CREDIT, SALARY, REFUND, CASHBACK, RECEIVED, DEPOSIT, NEFT/CR, IMPS/CR
+- Amount must be a positive number
+- Guess category: Food (restaurants, swiggy, zomato, food), Travel (redbus, irctc, uber, ola, metro, petrol), Shopping (amazon, flipkart, myntra), Bills (electricity, jio, airtel, water, internet), Health (pharmacy, hospital, doctor), Other
+- Keep title short and clean (merchant name only)
+- If genuinely no expense transactions found, return []
 
-Rules:
-- Only include debit/expense transactions, skip credits/income
-- Amount should be a positive number
-- Guess the category based on merchant name
-- Keep title short and clean
-- If no expenses found, return empty array []`;
+Return ONLY a valid JSON array, no markdown, no explanation:
+[{"title":"merchant name","amount":number,"category":"category"}]`;
 
     try {
       const text = await generateGeminiText(prompt);

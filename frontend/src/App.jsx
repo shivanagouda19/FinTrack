@@ -86,12 +86,17 @@ function App() {
       .then(data => Array.isArray(data) && setExpenses(data))
       .catch(() => {});
 
-    // Fetch total received
-    fetch('http://localhost:5000/received', {
+    // Fetch income and calculate total
+    fetch('http://localhost:5000/income', {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => res.status === 401 ? logout() : res.json())
-      .then(data => data?.totalReceived && setTotalRecived(data.totalReceived))
+      .then(data => {
+        if (Array.isArray(data)) {
+          setIncomeList(data);
+          setTotalRecived(data.reduce((sum, inc) => sum + inc.amount, 0));
+        }
+      })
       .catch(() => {});
 
   }, [token]);
@@ -216,6 +221,7 @@ function App() {
                 onLogout={logout}
                 setExpenses={setExpenses}
                 setTotalRecived={setTotalRecived}
+                setIncomeList={setIncomeList}
               />
             } />
             <Route path="*" element={<Navigate to="/" />} />

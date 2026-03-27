@@ -40,7 +40,7 @@ function ConfirmDialog({ message, onConfirm, onCancel }) {
   );
 }
 
-export default function Profile({ token, onUnauthorized, onLogout, setExpenses, setTotalRecived }) {
+export default function Profile({ token, onUnauthorized, onLogout, setExpenses, setTotalRecived, setIncomeList }) {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [joinedDate, setJoinedDate] = useState('');
@@ -95,7 +95,7 @@ export default function Profile({ token, onUnauthorized, onLogout, setExpenses, 
   async function handleReset(type) {
     const actions = {
       expenses: { url: '/expenses/all', method: 'DELETE', msg: 'This will permanently delete all your expenses.' },
-      income: { url: '/received/reset', method: 'PUT', msg: 'This will reset your total income to ₹0.' },
+      income: { url: '/received/reset', method: 'PUT', msg: 'This will delete all your income entries and reset total to Rs.0.' },
       upcoming: { url: '/upcoming/all', method: 'DELETE', msg: 'This will delete all your upcoming payments.' },
       goals: { url: '/goals/all', method: 'DELETE', msg: 'This will permanently delete all your goals.' },
       all: { url: null, msg: 'This will delete ALL your data — expenses, income and upcoming payments. This cannot be undone.' },
@@ -112,9 +112,11 @@ export default function Profile({ token, onUnauthorized, onLogout, setExpenses, 
             fetch('http://localhost:5000/received/reset', { method: 'PUT', headers: { Authorization: `Bearer ${token}` } }),
             fetch('http://localhost:5000/upcoming/all', { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }),
             fetch('http://localhost:5000/goals/all', { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }),
+            fetch('http://localhost:5000/income/all', { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }),
           ]);
           setExpenses([]);
           setTotalRecived(0);
+          setIncomeList([]);
           setSuccessMsg('All data has been reset successfully!');
           return;
         }
@@ -124,7 +126,7 @@ export default function Profile({ token, onUnauthorized, onLogout, setExpenses, 
         });
         if (res.status === 401) { onUnauthorized(); return; }
         if (type === 'expenses') { setExpenses([]); }
-        if (type === 'income') { setTotalRecived(0); }
+        if (type === 'income') { setTotalRecived(0); setIncomeList([]); }
         if (type === 'account') { onLogout(); return; }
         setSuccessMsg(`${type.charAt(0).toUpperCase() + type.slice(1)} reset successfully!`);
         setTimeout(() => setSuccessMsg(''), 3000);

@@ -8,15 +8,21 @@ const typeStyles = {
 
 export default function AIInsights({ token, expenses, totalReceived, totalSpent }) {
   const [insights, setInsights] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [rawInsight, setRawInsight] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [hasLoaded, setHasLoaded] = useState(false);
 
-  async function getInsights() {
-    setLoading(true);
+  async function handleRefresh() {
+    console.log('Refresh button clicked!');
+    setIsLoading(true);
     setError('');
+
+    const endpoint = '/api/ai/insights';
+    console.log('Fetching from:', '/api/ai/insights');
+
     try {
-      const res = await fetch('http://localhost:5000/ai/insights', {
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -24,14 +30,46 @@ export default function AIInsights({ token, expenses, totalReceived, totalSpent 
         },
         body: JSON.stringify({ expenses, totalReceived, totalSpent })
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setInsights(data.insights);
+
+      const data = await response.json();
+      console.log('Final Data Received:', data);
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch insights');
+      }
+
+      const text = data.insight || '';
+
+      try {
+        const parsedData = JSON.parse(text.replace(/```json|```/g, '').trim());
+        const parsedInsights = Array.isArray(parsedData?.insights)
+          ? parsedData.insights
+          : Array.isArray(parsedData?.insight)
+            ? parsedData.insight
+            : typeof parsedData?.insight === 'string'
+              ? [parsedData.insight]
+              : Array.isArray(parsedData)
+                ? parsedData
+                : [];
+
+        if (parsedInsights.length > 0) {
+          setInsights(parsedInsights);
+          setRawInsight('');
+        } else {
+          setInsights([]);
+          setRawInsight(text);
+        }
+      } catch {
+        setInsights([]);
+        setRawInsight(text);
+      }
+
       setHasLoaded(true);
     } catch (err) {
+      console.error('Frontend Fetch Error:', err);
       setError('Could not generate insights. Please try again.');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   }
 
@@ -54,11 +92,11 @@ export default function AIInsights({ token, expenses, totalReceived, totalSpent 
         </div>
         <button
           className="btn btn-primary"
-          onClick={getInsights}
-          disabled={loading || expenses.length === 0}
+          onClick={handleRefresh}
+          disabled={isLoading || expenses.length === 0}
           style={{ minWidth: '140px' }}
         >
-          {loading ? '⏳ Analyzing...' : hasLoaded ? '🔄 Refresh' : '✨ Get Insights'}
+          {isLoading ? '⏳ Analyzing...' : hasLoaded ? '🔄 Refresh' : '✨ Get Insights'}
         </button>
       </div>
 
@@ -68,13 +106,13 @@ export default function AIInsights({ token, expenses, totalReceived, totalSpent 
         </div>
       )}
 
-      {expenses.length === 0 && !loading && (
+      {expenses.length === 0 && !isLoading && (
         <div style={{ marginTop: '16px', color: 'var(--text-2)', fontSize: '0.85rem' }}>
           Add some expenses first to get AI insights!
         </div>
       )}
 
-      {loading && (
+      {isLoading && (
         <div style={{ marginTop: '20px', display: 'grid', gap: '12px' }}>
           {[1, 2, 3, 4].map(i => (
             <div key={i} style={{
@@ -88,27 +126,42 @@ export default function AIInsights({ token, expenses, totalReceived, totalSpent 
         </div>
       )}
 
-      {!loading && insights.length > 0 && (
-        <div style={{ display: 'grid', gap: '12px', marginTop: '4px' }}>
-          {insights.map((insight, i) => {
-            const style = typeStyles[insight.type] || typeStyles.tip;
-            return (
-              <div key={i} style={{
-                padding: '14px 16px',
-                borderRadius: 'var(--radius-md)',
-                background: style.bg,
-                border: `1px solid ${style.border}`,
-                display: 'flex',
-                gap: '12px',
-                alignItems: 'flex-start'
-              }}>
-                <span style={{ fontSize: '1.2rem', flexShrink: 0 }}>{insight.icon}</span>
-                <span style={{ color: 'var(--text-1)', fontSize: '0.9rem', lineHeight: 1.5 }}>
-                  {insight.message}
-                </span>
+      {!isLoading && (insights.length > 0 || rawInsight) && (
+        <div style={{ marginTop: '16px' }}>
+          <div style={{
+            padding: '16px',
+            borderRadius: 'var(--radius-md)',
+            background: typeStyles.tip.bg,
+            border: `1px solid ${typeStyles.tip.border}`,
+            color: 'var(--text-1)'
+          }}>
+            <p style={{ margin: '0 0 12px', fontWeight: 700, fontSize: '0.9rem' }}>
+              Budget Report
+            </p>
+
+            {insights.length > 0 && (
+              <div style={{ display: 'grid', gap: '10px' }}>
+                {insights.map((item, index) => (
+                  <div key={index} style={{
+                    padding: '12px',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border)',
+                    background: 'var(--surface-1)'
+                  }}>
+                    <p style={{ margin: 0, fontSize: '0.9rem', lineHeight: 1.5 }}>
+                      {item}
+                    </p>
+                  </div>
+                ))}
               </div>
-            );
-          })}
+            )}
+
+            {insights.length === 0 && rawInsight && (
+              <p style={{ margin: 0, fontSize: '0.9rem', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+                {rawInsight}
+              </p>
+            )}
+          </div>
         </div>
       )}
     </div>

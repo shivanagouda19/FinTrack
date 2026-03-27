@@ -14,7 +14,7 @@ export default function TotalSpent({ expenses }) {
         </span>
         <span>Total Spent</span>
       </div>
-      <strong>₹{total}</strong>
+      <strong>₹{Math.round(total)}</strong>
     </div>
   );
 }

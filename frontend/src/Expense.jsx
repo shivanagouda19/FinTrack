@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import BankImporter from './components/BankImporter';
 
 const CATEGORIES = [
   { label: "Food", color: "#f97316" },
@@ -40,6 +41,8 @@ export default function Expense({ token, onUnauthorized, expenses, setExpenses }
   const [editTitle, setEditTitle] = useState("");
   const [editAmount, setEditAmount] = useState("");
   const [editCategory, setEditCategory] = useState("Food");
+
+  const [showImporter, setShowImporter] = useState(false);
 
   const now = new Date();
   const [filterMonth, setFilterMonth] = useState(now.getMonth() + 1);
@@ -228,7 +231,12 @@ export default function Expense({ token, onUnauthorized, expenses, setExpenses }
 
   return (
     <div className="expense-section">
-      <h3 className="section-title">Add New Expense</h3>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <h3 className="section-title" style={{ margin: 0 }}>Add New Expense</h3>
+        <button className="btn btn-secondary" onClick={() => setShowImporter(true)} style={{ fontSize: '0.85rem' }}>
+          📄 Import Statement
+        </button>
+      </div>
 
       <div className="expense-form">
         <input
@@ -407,6 +415,16 @@ export default function Expense({ token, onUnauthorized, expenses, setExpenses }
           </li>
         ))}
       </ul>
+
+      {showImporter && (
+        <BankImporter
+          token={token}
+          onClose={() => setShowImporter(false)}
+          onImport={(newExpenses) => {
+            setExpenses(prev => [...newExpenses, ...prev]);
+          }}
+        />
+      )}
     </div>
   );
 }
