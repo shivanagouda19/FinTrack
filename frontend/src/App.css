@@ -686,3 +686,33 @@ button { font-family: var(--font-body); }
   color: var(--accent);
   font-weight: 600;
 }
+
+/* ─── Investments Page ───────────────────────────────────── */
+.investments-page { padding: 2rem; max-width: 1000px; margin: 0 auto; }
+.investments-page .page-subtitle { color: var(--text-2); margin-top: -0.75rem; margin-bottom: 1.5rem; font-size: 0.9rem; }
+.inv-summary { display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+.inv-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.5rem; flex: 1; min-width: 140px; display: flex; flex-direction: column; gap: 0.25rem; }
+.inv-card span { color: var(--text-2); font-size: 0.82rem; }
+.inv-card strong { font-size: 1.2rem; }
+.inv-card.gain strong { color: #22c55e; }
+.inv-card.loss strong { color: #ef4444; }
+.inv-tabs { display: flex; gap: 0.5rem; margin-bottom: 1.25rem; }
+.inv-tabs button { padding: 0.5rem 1.25rem; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-1); cursor: pointer; font-size: 0.9rem; transition: all 0.2s; }
+.inv-tabs button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.inv-import-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+.import-btn { padding: 0.5rem 1.25rem; background: var(--accent); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 0.9rem; }
+.import-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.import-msg { font-size: 0.88rem; color: var(--text-2); }
+.inv-error { background: #fee2e2; color: #dc2626; padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.9rem; }
+.inv-loading { color: var(--text-2); padding: 2rem; text-align: center; }
+.inv-table-wrap { overflow-x: auto; }
+.inv-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.inv-table th { background: var(--surface-2); padding: 0.75rem 1rem; text-align: left; color: var(--text-2); font-weight: 600; border-bottom: 1px solid var(--border); }
+.inv-table td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); color: var(--text-1); }
+.inv-table td small { color: var(--text-2); font-size: 0.78rem; }
+.inv-table .gain { color: #22c55e; font-weight: 600; }
+.inv-table .loss { color: #ef4444; font-weight: 600; }
+.inv-empty { text-align: center; padding: 2rem; color: var(--text-2); }
+.badge-buy { background: #dcfce7; color: #16a34a; padding: 2px 10px; border-radius: 99px; font-size: 0.78rem; font-weight: 600; }
+.badge-sell { background: #fee2e2; color: #dc2626; padding: 2px 10px; border-radius: 99px; font-size: 0.78rem; font-weight: 600; }
+@media (max-width: 600px) { .investments-page { padding: 1rem; } .inv-summary { flex-direction: column; } }

@@ -1,12 +1,13 @@
 import { useState } from 'react';
 
-export default function BankImporter({ token, onImport, onClose }) {
+export default function BankImporter({ token, onImportExpenses, onImportIncome, onClose }) {
   const [statement, setStatement] = useState('');
   const [loading, setLoading] = useState(false);
   const [parsed, setParsed] = useState([]);
   const [selected, setSelected] = useState([]);
   const [error, setError] = useState('');
   const [step, setStep] = useState(1);
+  const [activeTab, setActiveTab] = useState('debit');
 
   async function parseStatement() {
     if (!statement.trim()) return;
@@ -24,7 +25,7 @@ export default function BankImporter({ token, onImport, onClose }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       if (data.transactions.length === 0) {
-        setError('No expenses found in the statement. Try pasting more transaction details.');
+        setError('No transactions found. Try pasting more details.');
         setLoading(false);
         return;
       }
@@ -41,24 +42,34 @@ export default function BankImporter({ token, onImport, onClose }) {
   async function importSelected() {
     const toImport = parsed.filter((_, i) => selected.includes(i));
     if (toImport.length === 0) return;
+
+    const debits = toImport.filter(t => t.type === 'debit');
+    const credits = toImport.filter(t => t.type === 'credit');
+
     setLoading(true);
     try {
-      const results = await Promise.all(
-        toImport.map(t =>
+      const [expenseResults, incomeResults] = await Promise.all([
+        Promise.all(debits.map(t =>
           fetch('http://localhost:5000/expenses', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`
-            },
-            body: JSON.stringify({ title: t.title, amount: t.amount, category: t.category })
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ title: t.title, amount: t.amount, category: t.category || 'Other' })
           }).then(r => r.json())
-        )
-      );
-      onImport(results);
+        )),
+        Promise.all(credits.map(t =>
+          fetch('http://localhost:5000/income', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ title: t.title, amount: t.amount, source: t.source || 'Other' })
+          }).then(r => r.json())
+        ))
+      ]);
+
+      if (expenseResults.length > 0) onImportExpenses(expenseResults);
+      if (incomeResults.length > 0) onImportIncome(incomeResults);
       onClose();
     } catch {
-      setError('Could not import expenses. Please try again.');
+      setError('Could not import. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -74,6 +85,18 @@ export default function BankImporter({ token, onImport, onClose }) {
     Food: '#f97316', Travel: '#3b82f6', Shopping: '#a855f7',
     Bills: '#ef4444', Health: '#22c55e', Other: '#6b7280'
   };
+
+  const SOURCE_COLORS = {
+    Salary: '#22c55e', Freelance: '#3b82f6', Business: '#a855f7',
+    Investment: '#f59e0b', Gift: '#ec4899', Other: '#6b7280'
+  };
+
+  const debits = parsed.filter(t => t.type === 'debit');
+  const credits = parsed.filter(t => t.type === 'credit');
+  const currentList = activeTab === 'debit' ? debits : credits;
+
+  const selectedDebits = parsed.filter((t, i) => t.type === 'debit' && selected.includes(i));
+  const selectedCredits = parsed.filter((t, i) => t.type === 'credit' && selected.includes(i));
 
   return (
     <div style={{
@@ -99,44 +122,35 @@ export default function BankImporter({ token, onImport, onClose }) {
               📄 Import Bank Statement
             </h2>
             <p style={{ margin: 0, color: 'var(--text-2)', fontSize: '0.85rem' }}>
-              {step === 1 ? 'Paste your bank SMS or statement text' : `Found ${parsed.length} transactions — select which to import`}
+              {step === 1 ? 'Paste your bank SMS or statement text' : `Found ${debits.length} expenses + ${credits.length} income entries`}
             </p>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-2)', fontSize: '1.4rem', cursor: 'pointer', lineHeight: 1 }}>✕</button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-2)', fontSize: '1.4rem', cursor: 'pointer' }}>✕</button>
         </div>
 
-        {/* Step 1 — Paste statement */}
+        {/* Step 1 */}
         {step === 1 && (
           <>
             <div style={{ marginBottom: '8px', color: 'var(--text-2)', fontSize: '0.82rem' }}>
-              💡 Tip: Paste multiple SMS messages, mini statement text, or any bank transaction text
+              💡 Paste bank SMS, mini statement, or any transaction text. Debits go to Expenses, Credits go to Income automatically!
             </div>
             <textarea
               value={statement}
               onChange={e => setStatement(e.target.value)}
-              placeholder={`Example:\nUPI/DR/123456/SWIGGY/HDFC/450\nUPI/DR/789012/AMAZON/ICICI/1299\nATM WDL 2000 SBI BANK\nNEFT/CR/SALARY - skip this\nUPI/DR/345678/PETROL PUMP/500`}
+              placeholder={`Example:\nUPI/DR/123456/SWIGGY/450 - expense\nUPI/CR/789012/SALARY/50000 - income\nATM WDL 2000 - expense\nNEFT/CR/FREELANCE/15000 - income`}
               style={{
-                width: '100%',
-                minHeight: '200px',
-                padding: '12px',
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--border)',
-                background: 'var(--surface-2)',
-                color: 'var(--text-1)',
-                fontSize: '0.85rem',
-                resize: 'vertical',
-                fontFamily: 'monospace',
+                width: '100%', minHeight: '200px', padding: '12px',
+                borderRadius: 'var(--radius-md)', border: '1px solid var(--border)',
+                background: 'var(--surface-2)', color: 'var(--text-1)',
+                fontSize: '0.85rem', resize: 'vertical', fontFamily: 'monospace',
                 boxSizing: 'border-box'
               }}
             />
-            {error && (
-              <div style={{ marginTop: '8px', color: '#ef4444', fontSize: '0.85rem' }}>{error}</div>
-            )}
+            {error && <div style={{ marginTop: '8px', color: '#ef4444', fontSize: '0.85rem' }}>{error}</div>}
             <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
               <button className="btn btn-secondary" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
               <button
-                className="btn btn-primary"
-                style={{ flex: 2 }}
+                className="btn btn-primary" style={{ flex: 2 }}
                 onClick={parseStatement}
                 disabled={loading || !statement.trim()}
               >
@@ -146,42 +160,83 @@ export default function BankImporter({ token, onImport, onClose }) {
           </>
         )}
 
-        {/* Step 2 — Review transactions */}
+        {/* Step 2 */}
         {step === 2 && (
           <>
+            {/* Tabs */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+              <button
+                onClick={() => setActiveTab('debit')}
+                style={{
+                  flex: 1, padding: '8px', borderRadius: 'var(--radius-md)',
+                  border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem',
+                  background: activeTab === 'debit' ? '#ef444420' : 'var(--surface-2)',
+                  color: activeTab === 'debit' ? '#ef4444' : 'var(--text-2)',
+                  borderBottom: activeTab === 'debit' ? '2px solid #ef4444' : '2px solid transparent'
+                }}
+              >
+                💸 Expenses ({debits.length})
+              </button>
+              <button
+                onClick={() => setActiveTab('credit')}
+                style={{
+                  flex: 1, padding: '8px', borderRadius: 'var(--radius-md)',
+                  border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem',
+                  background: activeTab === 'credit' ? '#22c55e20' : 'var(--surface-2)',
+                  color: activeTab === 'credit' ? '#22c55e' : 'var(--text-2)',
+                  borderBottom: activeTab === 'credit' ? '2px solid #22c55e' : '2px solid transparent'
+                }}
+              >
+                💰 Income ({credits.length})
+              </button>
+            </div>
+
+            {/* Select/Deselect */}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
               <button
-                onClick={() => setSelected(parsed.map((_, i) => i))}
+                onClick={() => {
+                  const currentIndices = parsed.map((t, i) => t.type === (activeTab === 'debit' ? 'debit' : 'credit') ? i : -1).filter(i => i !== -1);
+                  setSelected(prev => [...new Set([...prev, ...currentIndices])]);
+                }}
                 style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 600 }}
               >
                 Select All
               </button>
               <button
-                onClick={() => setSelected([])}
+                onClick={() => {
+                  const currentIndices = parsed.map((t, i) => t.type === (activeTab === 'debit' ? 'debit' : 'credit') ? i : -1).filter(i => i !== -1);
+                  setSelected(prev => prev.filter(i => !currentIndices.includes(i)));
+                }}
                 style={{ background: 'none', border: 'none', color: 'var(--text-2)', fontSize: '0.85rem', cursor: 'pointer' }}
               >
                 Deselect All
               </button>
             </div>
 
+            {/* Transaction list */}
             <div style={{ display: 'grid', gap: '8px', marginBottom: '16px' }}>
-              {parsed.map((t, i) => {
-                const color = CATEGORY_COLORS[t.category] || '#6b7280';
-                const isSelected = selected.includes(i);
+              {currentList.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-2)' }}>
+                  No {activeTab === 'debit' ? 'expense' : 'income'} transactions found
+                </div>
+              ) : currentList.map((t) => {
+                const globalIndex = parsed.indexOf(t);
+                const isSelected = selected.includes(globalIndex);
+                const color = activeTab === 'debit'
+                  ? (CATEGORY_COLORS[t.category] || '#6b7280')
+                  : (SOURCE_COLORS[t.source] || '#6b7280');
+                const badge = activeTab === 'debit' ? t.category : t.source;
+
                 return (
                   <div
-                    key={i}
-                    onClick={() => toggleSelect(i)}
+                    key={globalIndex}
+                    onClick={() => toggleSelect(globalIndex)}
                     style={{
-                      padding: '12px 16px',
-                      borderRadius: 'var(--radius-md)',
+                      padding: '12px 16px', borderRadius: 'var(--radius-md)',
                       border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`,
                       background: isSelected ? '#00897b15' : 'var(--surface-2)',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      transition: 'all 0.15s ease'
+                      cursor: 'pointer', display: 'flex', justifyContent: 'space-between',
+                      alignItems: 'center', transition: 'all 0.15s ease'
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -189,8 +244,7 @@ export default function BankImporter({ token, onImport, onClose }) {
                         width: '18px', height: '18px', borderRadius: '4px',
                         border: `2px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`,
                         background: isSelected ? 'var(--accent)' : 'transparent',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        flexShrink: 0
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
                       }}>
                         {isSelected && <span style={{ color: 'white', fontSize: '0.7rem', fontWeight: 700 }}>✓</span>}
                       </div>
@@ -199,32 +253,36 @@ export default function BankImporter({ token, onImport, onClose }) {
                         <span style={{
                           fontSize: '0.72rem', padding: '1px 7px', borderRadius: '999px',
                           background: color + '22', color, border: `1px solid ${color}44`
-                        }}>
-                          {t.category}
-                        </span>
+                        }}>{badge}</span>
                       </div>
                     </div>
-                    <span style={{ fontWeight: 700, color: 'var(--text-1)', fontSize: '0.95rem' }}>₹{t.amount}</span>
+                    <span style={{
+                      fontWeight: 700, fontSize: '0.95rem',
+                      color: activeTab === 'debit' ? '#ef4444' : '#22c55e'
+                    }}>
+                      {activeTab === 'debit' ? '-' : '+'}₹{t.amount}
+                    </span>
                   </div>
                 );
               })}
             </div>
 
-            {error && (
-              <div style={{ marginBottom: '12px', color: '#ef4444', fontSize: '0.85rem' }}>{error}</div>
-            )}
+            {error && <div style={{ marginBottom: '12px', color: '#ef4444', fontSize: '0.85rem' }}>{error}</div>}
 
+            {/* Summary */}
             <div style={{
               padding: '12px 16px', borderRadius: 'var(--radius-md)',
               background: 'var(--surface-2)', marginBottom: '16px',
-              display: 'flex', justifyContent: 'space-between'
+              display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px'
             }}>
-              <span style={{ color: 'var(--text-2)', fontSize: '0.85rem' }}>
-                {selected.length} of {parsed.length} selected
-              </span>
-              <span style={{ fontWeight: 700, color: 'var(--text-1)' }}>
-                Total: ₹{parsed.filter((_, i) => selected.includes(i)).reduce((s, t) => s + t.amount, 0).toLocaleString('en-IN')}
-              </span>
+              <div>
+                <span style={{ color: 'var(--text-2)', fontSize: '0.8rem' }}>Selected Expenses</span>
+                <div style={{ color: '#ef4444', fontWeight: 700 }}>-₹{selectedDebits.reduce((s, t) => s + t.amount, 0).toLocaleString('en-IN')}</div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <span style={{ color: 'var(--text-2)', fontSize: '0.8rem' }}>Selected Income</span>
+                <div style={{ color: '#22c55e', fontWeight: 700 }}>+₹{selectedCredits.reduce((s, t) => s + t.amount, 0).toLocaleString('en-IN')}</div>
+              </div>
             </div>
 
             <div style={{ display: 'flex', gap: '12px' }}>
@@ -232,12 +290,11 @@ export default function BankImporter({ token, onImport, onClose }) {
                 ← Back
               </button>
               <button
-                className="btn btn-primary"
-                style={{ flex: 2 }}
+                className="btn btn-primary" style={{ flex: 2 }}
                 onClick={importSelected}
                 disabled={loading || selected.length === 0}
               >
-                {loading ? '⏳ Importing...' : `⬇ Import ${selected.length} Expenses`}
+                {loading ? '⏳ Importing...' : `⬇ Import ${selected.length} Transactions`}
               </button>
             </div>
           </>

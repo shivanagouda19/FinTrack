@@ -31,7 +31,7 @@ function CategoryBadge({ category }) {
   );
 }
 
-export default function Expense({ token, onUnauthorized, expenses, setExpenses }) {
+export default function Expense({ token, onUnauthorized, expenses, setExpenses, setIncomeList, setTotalRecived }) {
 
   const [newTitle, setNewTitle] = useState("");
   const [newAmount, setNewAmount] = useState("");
@@ -420,8 +420,12 @@ export default function Expense({ token, onUnauthorized, expenses, setExpenses }
         <BankImporter
           token={token}
           onClose={() => setShowImporter(false)}
-          onImport={(newExpenses) => {
+          onImportExpenses={(newExpenses) => {
             setExpenses(prev => [...newExpenses, ...prev]);
+          }}
+          onImportIncome={(newIncome) => {
+            setIncomeList(prev => [...newIncome, ...prev]);
+            setTotalRecived(prev => prev + newIncome.reduce((s, i) => s + i.amount, 0));
           }}
         />
       )}

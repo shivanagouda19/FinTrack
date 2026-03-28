@@ -1,6 +1,6 @@
 import Expense from '../Expense';
 
-function ExpensePage({ token, onUnauthorized, expenses, setExpenses }) {
+function ExpensePage({ token, onUnauthorized, expenses, setExpenses, setIncomeList, setTotalRecived }) {
   return (
     <div className="app">
       <header className="app-header dashboard-header">
@@ -15,6 +15,8 @@ function ExpensePage({ token, onUnauthorized, expenses, setExpenses }) {
             onUnauthorized={onUnauthorized}
             expenses={expenses}
             setExpenses={setExpenses}
+            setIncomeList={setIncomeList}
+            setTotalRecived={setTotalRecived}
           />
         </div>
       </section>

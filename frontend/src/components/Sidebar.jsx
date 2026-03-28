@@ -36,6 +36,10 @@ function Sidebar() {
           <span>🎯</span>
           <span>Goals</span>
         </NavLink>
+        <NavLink to="/investments" className="nav-link">
+          <span>📈</span>
+          <span>Investments</span>
+        </NavLink>
       </div>
 
       {/* Profile at bottom */}

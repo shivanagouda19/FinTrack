@@ -8,6 +8,7 @@ const cors = require("cors");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+const speakeasy = require('speakeasy');
 const JWT_SECRET = process.env.JWT_SECRET || "SECRET_KEY";
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
@@ -557,22 +558,22 @@ app.post('/ai/import', authMiddleware, async (req, res) => {
   try {
     const { statement } = req.body;
 
-    const prompt = `You are a bank statement parser for Indian bank accounts. Extract ONLY expense/debit transactions from this statement.
+    const prompt = `You are an Indian bank statement parser. Parse ALL transactions from this statement and classify each as either a debit (expense) or credit (income).
 
 Statement:
 ${statement}
 
-STRICT RULES:
-- ONLY include transactions where money was SPENT or DEBITED (UPI/DR, ATM WDL, NEFT/DR, purchases, payments)
-- SKIP any transaction that is a CREDIT, INCOME, SALARY, REFUND, CASHBACK, or money RECEIVED
-- SKIP transactions with keywords: CR, CREDIT, SALARY, REFUND, CASHBACK, RECEIVED, DEPOSIT, NEFT/CR, IMPS/CR
+Rules:
+- Debit = money going OUT (UPI/DR, ATM WDL, purchases, payments, bills)
+- Credit = money coming IN (salary, NEFT/CR, UPI/CR, refunds, cashback, deposits)
 - Amount must be a positive number
-- Guess category: Food (restaurants, swiggy, zomato, food), Travel (redbus, irctc, uber, ola, metro, petrol), Shopping (amazon, flipkart, myntra), Bills (electricity, jio, airtel, water, internet), Health (pharmacy, hospital, doctor), Other
-- Keep title short and clean (merchant name only)
-- If genuinely no expense transactions found, return []
+- For debits guess category: Food/Travel/Shopping/Bills/Health/Other
+- For credits guess source: Salary/Freelance/Business/Investment/Gift/Other
+- Keep title short and clean
 
 Return ONLY a valid JSON array, no markdown, no explanation:
-[{"title":"merchant name","amount":number,"category":"category"}]`;
+[{"title":"name","amount":number,"type":"debit","category":"Food"}]
+For credits use: {"title":"name","amount":number,"type":"credit","source":"Salary"}`;
 
     try {
       const text = await generateGeminiText(prompt);
@@ -589,6 +590,116 @@ Return ONLY a valid JSON array, no markdown, no explanation:
   } catch (err) {
     console.log('Error in import route:', err?.message || err);
     res.status(500).json({ error: 'Could not parse statement. Please try again later.' });
+  }
+});
+
+// Angel One SmartAPI Integration
+const angelLogin = async () => {
+  const totp = speakeasy.totp({
+    secret: process.env.ANGEL_TOTP_SECRET,
+    encoding: 'base32',
+  });
+
+  const res = await fetch('https://apiconnect.angelbroking.com/rest/auth/angelbroking/user/v1/loginByPassword', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'X-UserType': 'USER',
+      'X-SourceID': 'WEB',
+      'X-ClientLocalIP': '127.0.0.1',
+      'X-ClientPublicIP': '127.0.0.1',
+      'X-MACAddress': '00:00:00:00:00:00',
+      'X-PrivateKey': process.env.ANGEL_API_KEY,
+    },
+    body: JSON.stringify({
+      clientcode: process.env.ANGEL_CLIENT_CODE,
+      password: process.env.ANGEL_PIN,
+      totp,
+    }),
+  });
+
+  const data = await res.json();
+  if (!data.data?.jwtToken) throw new Error(data.message || 'Angel One login failed');
+  return data.data.jwtToken;
+};
+
+const angelHeaders = (jwt) => ({
+  'Authorization': `Bearer ${jwt}`,
+  'Content-Type': 'application/json',
+  'Accept': 'application/json',
+  'X-UserType': 'USER',
+  'X-SourceID': 'WEB',
+  'X-ClientLocalIP': '127.0.0.1',
+  'X-ClientPublicIP': '127.0.0.1',
+  'X-MACAddress': '00:00:00:00:00:00',
+  'X-PrivateKey': process.env.ANGEL_API_KEY,
+});
+
+app.get('/angel/holdings', authMiddleware, async (req, res) => {
+  try {
+    const jwt = await angelLogin();
+    const response = await fetch('https://apiconnect.angelbroking.com/rest/secure/angelbroking/portfolio/v1/getHolding', {
+      headers: angelHeaders(jwt),
+    });
+    const data = await response.json();
+    res.json(data.data || []);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/angel/trades', authMiddleware, async (req, res) => {
+  try {
+    const jwt = await angelLogin();
+    const response = await fetch('https://apiconnect.angelbroking.com/rest/secure/angelbroking/order/v1/getTradeBook', {
+      headers: angelHeaders(jwt),
+    });
+    const data = await response.json();
+    res.json(data.data || []);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/angel/import-trades', authMiddleware, async (req, res) => {
+  try {
+    const jwt = await angelLogin();
+    const response = await fetch('https://apiconnect.angelbroking.com/rest/secure/angelbroking/order/v1/getTradeBook', {
+      headers: angelHeaders(jwt),
+    });
+    const data = await response.json();
+    const trades = data.data || [];
+    
+    const imported = [];
+    for (const t of trades) {
+      const isBuy = t.transactiontype === 'BUY';
+      const amount = Math.round(parseFloat(t.quantity) * parseFloat(t.tradeprice));
+      
+      if (isBuy) {
+        const expense = new Expense({
+          userId: req.userId,
+          title: `${t.tradingsymbol} (Stock Purchase)`,
+          amount,
+          category: 'Other',
+        });
+        await expense.save();
+        imported.push(expense);
+      } else {
+        const income = new Income({
+          userId: req.userId,
+          title: `${t.tradingsymbol} (Stock Sale)`,
+          amount,
+          source: 'Investment',
+        });
+        await income.save();
+        imported.push(income);
+      }
+    }
+    
+    res.json({ imported: imported.length, trades: imported });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

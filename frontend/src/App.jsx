@@ -9,6 +9,7 @@ import UpcomingPayments from './pages/UpcomingPayments';
 import CalendarPage from './pages/CalendarPage';
 import Profile from './pages/Profile';
 import Goals from './pages/Goals';
+import Investments from './pages/Investments';
 import "./App.css";
 
 const MoonIcon = () => (
@@ -209,11 +210,21 @@ function App() {
         <div className="main-content">
           <Routes>
             <Route path="/" element={<Dashboard expenses={expenses} totalRecived={totalRecived} token={token} />} />
-            <Route path="/expenses" element={<ExpensePage token={token} onUnauthorized={logout} expenses={expenses} setExpenses={setExpenses} />} />
+            <Route path="/expenses" element={
+              <ExpensePage
+                token={token}
+                onUnauthorized={logout}
+                expenses={expenses}
+                setExpenses={setExpenses}
+                setIncomeList={setIncomeList}
+                setTotalRecived={setTotalRecived}
+              />
+            } />
             <Route path="/income" element={<IncomePage token={token} onUnauthorized={logout} setTotalRecived={setTotalRecived} incomeList={incomeList} setIncomeList={setIncomeList} />} />
             <Route path="/upcoming" element={<UpcomingPayments token={token} onUnauthorized={logout} onPaymentChange={fetchAlerts} />} />
             <Route path="/calendar" element={<CalendarPage token={token} onUnauthorized={logout} expenses={expenses} />} />
             <Route path="/goals" element={<Goals token={token} onUnauthorized={logout} />} />
+            <Route path="/investments" element={<Investments />} />
             <Route path="/profile" element={
               <Profile
                 token={token}
