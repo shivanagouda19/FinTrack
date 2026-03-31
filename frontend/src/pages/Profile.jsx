@@ -43,16 +43,9 @@ function ConfirmDialog({ message, onConfirm, onCancel }) {
 export default function Profile({ token, onUnauthorized, onLogout, setExpenses, setTotalRecived, setIncomeList }) {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
-  const [joinedDate, setJoinedDate] = useState('');
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [passwordMsg, setPasswordMsg] = useState('');
-  const [passwordError, setPasswordError] = useState(false);
   const [confirm, setConfirm] = useState(null);
   const [successMsg, setSuccessMsg] = useState('');
   const [currency, setCurrency] = useState(localStorage.getItem('currency') || '₹');
-  const [passwordErrors, setPasswordErrors] = useState({});
 
   useEffect(() => {
     fetch('http://localhost:5000/profile', {
@@ -65,46 +58,10 @@ export default function Profile({ token, onUnauthorized, onLogout, setExpenses, 
       .then(data => {
         if (!data) return;
         setEmail(data.email);
-        setJoinedDate(new Date(data._id.toString().substring(0, 8).padEnd(24, '0')).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' }));
       });
   }, [token, onUnauthorized]);
 
-  async function changePassword() {
-    const errors = {};
-    if (!currentPassword || currentPassword.trim() === '') {
-      errors.currentPassword = 'Current password is required';
-    }
-    if (!newPassword || newPassword.length < 6) {
-      errors.newPassword = 'New password must be at least 6 characters';
-    }
-    if (newPassword !== confirmPassword) {
-      errors.confirmPassword = 'Passwords do not match';
-    }
-    if (currentPassword === newPassword) {
-      errors.newPassword = 'New password must be different';
-    }
 
-    if (Object.keys(errors).length > 0) {
-      setPasswordErrors(errors);
-      setPasswordMsg('');
-      setPasswordError(false);
-      return;
-    }
-    setPasswordErrors({});
-    setPasswordMsg('');
-    setPasswordError(false);
-    const res = await fetch('http://localhost:5000/profile/password', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ currentPassword, newPassword })
-    });
-    const data = await res.json();
-    if (!res.ok) { setPasswordMsg(data.error); setPasswordError(true); return; }
-    setPasswordMsg('Password updated successfully!');
-    setPasswordError(false);
-    setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
-    setPasswordErrors({});
-  }
 
   async function handleReset(type) {
     const actions = {
@@ -173,38 +130,10 @@ export default function Profile({ token, onUnauthorized, onLogout, setExpenses, 
       {/* Account Info */}
       <Section title="Account Info">
         <div style={{ display: 'grid', gap: '16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0' }}>
             <span style={{ color: 'var(--text-2)', fontSize: '0.9rem' }}>Email</span>
             <span style={{ color: 'var(--text-1)', fontWeight: 600 }}>{email}</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0' }}>
-            <span style={{ color: 'var(--text-2)', fontSize: '0.9rem' }}>Member since</span>
-            <span style={{ color: 'var(--text-1)', fontWeight: 600 }}>{joinedDate}</span>
-          </div>
-        </div>
-      </Section>
-
-      {/* Change Password */}
-      <Section title="Change Password">
-        <div style={{ display: 'grid', gap: '12px', maxWidth: '400px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <input type="password" placeholder="Current password" value={currentPassword} onChange={e => { setCurrentPassword(e.target.value); setPasswordErrors(prev => ({ ...prev, currentPassword: '' })); }} />
-            {passwordErrors.currentPassword && <span className="field-error">{passwordErrors.currentPassword}</span>}
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <input type="password" placeholder="New password" value={newPassword} onChange={e => { setNewPassword(e.target.value); setPasswordErrors(prev => ({ ...prev, newPassword: '' })); }} />
-            {passwordErrors.newPassword && <span className="field-error">{passwordErrors.newPassword}</span>}
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <input type="password" placeholder="Confirm new password" value={confirmPassword} onChange={e => { setConfirmPassword(e.target.value); setPasswordErrors(prev => ({ ...prev, confirmPassword: '' })); }} />
-            {passwordErrors.confirmPassword && <span className="field-error">{passwordErrors.confirmPassword}</span>}
-          </div>
-          {passwordMsg && (
-            <p style={{ fontSize: '0.85rem', color: passwordError ? '#ef4444' : '#22c55e', margin: 0 }}>{passwordMsg}</p>
-          )}
-          <button className="btn btn-primary" style={{ width: 'fit-content' }} onClick={changePassword}>
-            Update Password
-          </button>
         </div>
       </Section>
 

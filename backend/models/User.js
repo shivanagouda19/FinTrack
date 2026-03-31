@@ -3,6 +3,11 @@ const mongoose = require("mongoose");
 const UserSchema = new mongoose.Schema({
   email: { type: String, unique: true },
   password: String,
+  isVerified: { type: Boolean, default: false },
+  otp: { type: String, default: '' },
+  otpExpiry: { type: Date, default: null },
+  resetPasswordToken: { type: String, default: '' },
+  resetPasswordTokenExpiry: { type: Date, default: null },
   angelOne: {
     token: { type: String, default: '' },
     tokenExpiry: { type: Date, default: null },

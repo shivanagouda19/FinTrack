@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import TopBar from './components/TopBar';
 import Dashboard from './components/Dashboard';
@@ -10,6 +10,9 @@ import CalendarPage from './pages/CalendarPage';
 import Profile from './pages/Profile';
 import Goals from './pages/Goals';
 import Investments from './pages/Investments';
+import VerifyEmail from './pages/VerifyEmail';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import "./App.css";
 
 const MoonIcon = () => (
@@ -53,6 +56,63 @@ function App() {
   const [formErrors, setFormErrors] = useState({});
 
   useEffect(() => { localStorage.setItem("theme", theme); }, [theme]);
+
+  return (
+    <BrowserRouter>
+      <AppContent
+        theme={theme}
+        setTheme={setTheme}
+        expenses={expenses}
+        setExpenses={setExpenses}
+        incomeList={incomeList}
+        setIncomeList={setIncomeList}
+        urgentAlerts={urgentAlerts}
+        setUrgentAlerts={setUrgentAlerts}
+        email={email}
+        setEmail={setEmail}
+        password={password}
+        setPassword={setPassword}
+        isLoginMode={isLoginMode}
+        setIsLoginMode={setIsLoginMode}
+        authMessage={authMessage}
+        setAuthMessage={setAuthMessage}
+        token={token}
+        setToken={setToken}
+        totalRecived={totalRecived}
+        setTotalRecived={setTotalRecived}
+        formErrors={formErrors}
+        setFormErrors={setFormErrors}
+      />
+    </BrowserRouter>
+  );
+}
+
+function AppContent({
+  theme,
+  setTheme,
+  expenses,
+  setExpenses,
+  incomeList,
+  setIncomeList,
+  urgentAlerts,
+  setUrgentAlerts,
+  email,
+  setEmail,
+  password,
+  setPassword,
+  isLoginMode,
+  setIsLoginMode,
+  authMessage,
+  setAuthMessage,
+  token,
+  setToken,
+  totalRecived,
+  setTotalRecived,
+  formErrors,
+  setFormErrors,
+}) {
+  const location = useLocation();
+  const publicPaths = ['/verify-email', '/forgot-password', '/reset-password'];
 
   function fetchAlerts() {
     if (!token) return;
@@ -135,15 +195,20 @@ function App() {
     const data = await response.json();
 
     if (!response.ok) {
-      setAuthMessage(data.error || "Authentication failed.");
+      if (data.error === 'EMAIL_NOT_VERIFIED') {
+        setAuthMessage('Please verify your email before logging in. Check your inbox.');
+      } else {
+        setAuthMessage(data.error || "Authentication failed.");
+      }
       return;
     }
 
     if (!isLoginMode) {
-      setAuthMessage("Account created. Please log in.");
-      setIsLoginMode(true);
-      setPassword("");
-      setFormErrors({});
+      // Navigate to verify-email page with email via state
+      const nav = document.createElement('a');
+      nav.href = '/verify-email';
+      nav.click();
+      sessionStorage.setItem('verifyEmail', email.trim());
       return;
     }
 
@@ -166,6 +231,18 @@ function App() {
   }
 
   if (!token) {
+    if (publicPaths.some(path => location.pathname.startsWith(path))) {
+      return (
+        <div className="app-shell" data-theme={theme}>
+          <Routes>
+            <Route path="/verify-email" element={<VerifyEmail />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+          </Routes>
+        </div>
+      );
+    }
+
     return (
       <div className="app-shell" data-theme={theme}>
         <div className="app auth-app" style={{ maxWidth: '460px', margin: '0 auto', padding: '40px 20px' }}>
@@ -210,6 +287,14 @@ function App() {
               >
                 {isLoginMode ? "Need an account? Sign up" : "Already have an account? Log in"}
               </button>
+              {isLoginMode && (
+                <button
+                  className="auth-link-btn"
+                  onClick={() => window.location.href = '/forgot-password'}
+                >
+                  Forgot Password?
+                </button>
+              )}
               {authMessage && <p className="auth-message">{authMessage}</p>}
             </div>
           </section>
@@ -219,43 +304,41 @@ function App() {
   }
 
   return (
-    <BrowserRouter>
-      <div className="app-shell" data-theme={theme}>
-        <Sidebar />
-        {token && <TopBar token={token} alerts={urgentAlerts} theme={theme} toggleTheme={toggleTheme} />}
-        <div className="main-content">
-          <Routes>
-            <Route path="/" element={<Dashboard expenses={expenses} totalRecived={totalRecived} token={token} />} />
-            <Route path="/expenses" element={
-              <ExpensePage
-                token={token}
-                onUnauthorized={logout}
-                expenses={expenses}
-                setExpenses={setExpenses}
-                setIncomeList={setIncomeList}
-                setTotalRecived={setTotalRecived}
-              />
-            } />
-            <Route path="/income" element={<IncomePage token={token} onUnauthorized={logout} setTotalRecived={setTotalRecived} incomeList={incomeList} setIncomeList={setIncomeList} />} />
-            <Route path="/upcoming" element={<UpcomingPayments token={token} onUnauthorized={logout} onPaymentChange={fetchAlerts} />} />
-            <Route path="/calendar" element={<CalendarPage token={token} onUnauthorized={logout} expenses={expenses} />} />
-            <Route path="/goals" element={<Goals token={token} onUnauthorized={logout} />} />
-            <Route path="/investments" element={<Investments />} />
-            <Route path="/profile" element={
-              <Profile
-                token={token}
-                onUnauthorized={logout}
-                onLogout={logout}
-                setExpenses={setExpenses}
-                setTotalRecived={setTotalRecived}
-                setIncomeList={setIncomeList}
-              />
-            } />
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-        </div>
+    <div className="app-shell" data-theme={theme}>
+      <Sidebar />
+      {token && <TopBar token={token} alerts={urgentAlerts} theme={theme} toggleTheme={toggleTheme} />}
+      <div className="main-content">
+        <Routes>
+          <Route path="/" element={<Dashboard expenses={expenses} totalRecived={totalRecived} token={token} />} />
+          <Route path="/expenses" element={
+            <ExpensePage
+              token={token}
+              onUnauthorized={logout}
+              expenses={expenses}
+              setExpenses={setExpenses}
+              setIncomeList={setIncomeList}
+              setTotalRecived={setTotalRecived}
+            />
+          } />
+          <Route path="/income" element={<IncomePage token={token} onUnauthorized={logout} setTotalRecived={setTotalRecived} incomeList={incomeList} setIncomeList={setIncomeList} />} />
+          <Route path="/upcoming" element={<UpcomingPayments token={token} onUnauthorized={logout} onPaymentChange={fetchAlerts} />} />
+          <Route path="/calendar" element={<CalendarPage token={token} onUnauthorized={logout} expenses={expenses} />} />
+          <Route path="/goals" element={<Goals token={token} onUnauthorized={logout} />} />
+          <Route path="/investments" element={<Investments />} />
+          <Route path="/profile" element={
+            <Profile
+              token={token}
+              onUnauthorized={logout}
+              onLogout={logout}
+              setExpenses={setExpenses}
+              setTotalRecived={setTotalRecived}
+              setIncomeList={setIncomeList}
+            />
+          } />
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
       </div>
-    </BrowserRouter>
+    </div>
   );
 }
 

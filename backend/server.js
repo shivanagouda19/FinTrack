@@ -9,8 +9,33 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const speakeasy = require('speakeasy');
+const nodemailer = require('nodemailer');
+const crypto = require('crypto');
 const JWT_SECRET = process.env.JWT_SECRET || "SECRET_KEY";
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+const transporter = nodemailer.createTransport({
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false,
+  family: 4,
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+  tls: {
+    rejectUnauthorized: false,
+  },
+});
+
+const sendEmail = async (to, subject, html) => {
+  await transporter.sendMail({
+    from: `"Expense Tracker" <${process.env.EMAIL_USER}>`,
+    to,
+    subject,
+    html,
+  });
+};
 
 app.use(cors());
 app.use(express.json());
@@ -132,23 +157,35 @@ app.post("/signup", async (req, res) => {
       return res.status(400).json({ error: "Password must be at least 6 characters" });
     }
 
-    const exists = await User.findOne({ email });
-
-    if (exists) {
-      return res.status(400).json({ error: "Email already exists" });
+    const existing = await User.findOne({ email });
+    if (existing) {
+      return res.status(400).json({ error: "Email already registered" });
     }
 
     const hashed = await bcrypt.hash(password, 10);
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
 
-    const user = new User({
+    const user = await User.create({
       email,
-      password: hashed
+      password: hashed,
+      isVerified: false,
+      otp,
+      otpExpiry,
     });
 
-    await user.save();
-    res.json({ message: "User created" });
-  } catch {
-    res.status(500).json({ error: "Could not create user" });
+    await sendEmail(email, 'Verify Your Email — Expense Tracker', `
+      <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto;">
+        <h2 style="color: #00c9b1;">Verify Your Email</h2>
+        <p>Use the OTP below to verify your account:</p>
+        <div style="font-size: 2rem; font-weight: bold; letter-spacing: 8px; color: #00c9b1; text-align: center; padding: 20px; background: #f3f4f6; border-radius: 8px; margin: 16px 0;">${otp}</div>
+        <p style="color: #888; font-size: 13px;">This OTP expires in 10 minutes. If you didn't sign up, ignore this email.</p>
+      </div>
+    `);
+
+    res.json({ message: 'OTP sent to your email. Please verify to continue.', email });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -168,6 +205,10 @@ app.post("/login", async (req, res) => {
 
     if (!user) return res.status(400).json({ error: "User not found" });
 
+    if (user.isVerified === false && user.isVerified !== undefined) {
+      return res.status(403).json({ error: "EMAIL_NOT_VERIFIED" });
+    }
+
     const match = await bcrypt.compare(password, user.password);
 
     if (!match) return res.status(400).json({ error: "Wrong password" });
@@ -177,6 +218,117 @@ app.post("/login", async (req, res) => {
     res.json({ token, email: user.email });
   } catch {
     res.status(500).json({ error: "Login failed" });
+  }
+});
+
+app.post('/verify-otp', async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    if (!email || !otp) return res.status(400).json({ error: 'Email and OTP are required' });
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(400).json({ error: 'User not found' });
+    if (user.isVerified) return res.json({ message: 'Email already verified. Please login.' });
+    if (user.otp !== otp) return res.status(400).json({ error: 'Invalid OTP' });
+    if (new Date() > user.otpExpiry) return res.status(400).json({ error: 'OTP expired. Please signup again.' });
+
+    await User.findByIdAndUpdate(user._id, {
+      isVerified: true,
+      otp: '',
+      otpExpiry: null,
+    });
+
+    res.json({ message: 'Email verified successfully! You can now login.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/resend-otp', async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) return res.status(400).json({ error: 'User not found' });
+    if (user.isVerified) return res.json({ message: 'Email already verified.' });
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
+    await User.findByIdAndUpdate(user._id, { otp, otpExpiry });
+
+    await sendEmail(email, 'New OTP — Expense Tracker', `
+      <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto;">
+        <h2 style="color: #00c9b1;">Your New OTP</h2>
+        <div style="font-size: 2rem; font-weight: bold; letter-spacing: 8px; color: #00c9b1; text-align: center; padding: 20px; background: #f3f4f6; border-radius: 8px; margin: 16px 0;">${otp}</div>
+        <p style="color: #888; font-size: 13px;">This OTP expires in 10 minutes.</p>
+      </div>
+    `);
+
+    res.json({ message: 'New OTP sent to your email.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: 'Valid email is required' });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.json({ message: 'If this email exists, a reset link has been sent.' });
+    }
+
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetTokenExpiry = new Date(Date.now() + 1 * 60 * 60 * 1000);
+
+    await User.findByIdAndUpdate(user._id, {
+      resetPasswordToken: resetToken,
+      resetPasswordTokenExpiry: resetTokenExpiry,
+    });
+
+    const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+    await sendEmail(email, 'Reset Your Password — Expense Tracker', `
+      <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto;">
+        <h2 style="color: #00c9b1;">Reset Your Password</h2>
+        <p>We received a request to reset your password.</p>
+        <a href="${resetUrl}" style="display: inline-block; padding: 12px 24px; background: #00c9b1; color: white; border-radius: 8px; text-decoration: none; margin: 16px 0;">Reset Password</a>
+        <p style="color: #888; font-size: 13px;">This link expires in 1 hour. If you didn't request this, ignore this email.</p>
+      </div>
+    `);
+
+    res.json({ message: 'If this email exists, a reset link has been sent.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/reset-password', async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+    if (!token) return res.status(400).json({ error: 'Reset token is required' });
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordTokenExpiry: { $gt: new Date() },
+    });
+    if (!user) return res.status(400).json({ error: 'Invalid or expired reset link' });
+
+    const hashed = await bcrypt.hash(newPassword, 10);
+    await User.findByIdAndUpdate(user._id, {
+      password: hashed,
+      resetPasswordToken: '',
+      resetPasswordTokenExpiry: null,
+    });
+
+    res.json({ message: 'Password reset successfully! You can now login.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
