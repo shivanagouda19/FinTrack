@@ -40,6 +40,7 @@ function App() {
   const [formErrors, setFormErrors] = useState({});
   const [currency, setCurrency] = useState('₹');
   const [showAuthForm, setShowAuthForm] = useState(false);
+  const [authLoading, setAuthLoading] = useState(false);
 
   useEffect(() => { localStorage.setItem("theme", theme); }, [theme]);
 
@@ -72,6 +73,8 @@ function App() {
         setCurrency={setCurrency}
         showAuthForm={showAuthForm}
         setShowAuthForm={setShowAuthForm}
+        authLoading={authLoading}
+        setAuthLoading={setAuthLoading}
       />
     </BrowserRouter>
   );
@@ -104,6 +107,8 @@ function AppContent({
   setCurrency,
   showAuthForm,
   setShowAuthForm,
+  authLoading,
+  setAuthLoading,
 }) {
   const location = useLocation();
   const publicPaths = ['/verify-email', '/forgot-password', '/reset-password'];
@@ -189,37 +194,46 @@ function AppContent({
     }
     setFormErrors({});
 
-    const endpoint = isLoginMode ? "login" : "signup";
-    const response = await fetch(`http://localhost:5000/${endpoint}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: email.trim(), password })
-    });
+    setAuthLoading(true);
+    try {
+      const endpoint = isLoginMode ? "login" : "signup";
+      const response = await fetch(`http://localhost:5000/${endpoint}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), password })
+      });
 
-    const data = await response.json();
+      const data = await response.json();
 
-    if (!response.ok) {
-      if (data.error === 'EMAIL_NOT_VERIFIED') {
-        setAuthMessage('Please verify your email before logging in. Check your inbox.');
-      } else {
-        setAuthMessage(data.error || "Authentication failed.");
+      if (!response.ok) {
+        if (data.error === 'EMAIL_NOT_VERIFIED') {
+          setAuthMessage('Please verify your email before logging in. Check your inbox.');
+        } else {
+          setAuthMessage(data.error || "Authentication failed.");
+        }
+        setAuthLoading(false);
+        return;
       }
-      return;
-    }
 
-    if (!isLoginMode) {
-      // Navigate to verify-email page with email via state
-      const nav = document.createElement('a');
-      nav.href = '/verify-email';
-      nav.click();
-      sessionStorage.setItem('verifyEmail', email.trim());
-      return;
-    }
+      if (!isLoginMode) {
+        // Navigate to verify-email page with email via state
+        const nav = document.createElement('a');
+        nav.href = '/verify-email';
+        nav.click();
+        sessionStorage.setItem('verifyEmail', email.trim());
+        setAuthLoading(false);
+        return;
+      }
 
-    localStorage.setItem("token", data.token);
-    setToken(data.token);
-    setAuthMessage("");
-    setPassword("");
+      localStorage.setItem("token", data.token);
+      setToken(data.token);
+      setAuthMessage("");
+      setPassword("");
+      setAuthLoading(false);
+    } catch (error) {
+      setAuthMessage("Network error. Please try again.");
+      setAuthLoading(false);
+    }
   }
 
   function handleAuthKeyDown(e) {
@@ -303,8 +317,11 @@ function AppContent({
                   autoComplete={isLoginMode ? "current-password" : "new-password"}
                 />
                 {formErrors.password && <span className="field-error">{formErrors.password}</span>}
-                <button className="btn" onClick={handleAuthSubmit}>
-                  {isLoginMode ? "Log in" : "Create account"}
+                <button className="btn" onClick={handleAuthSubmit} disabled={authLoading}>
+                  {isLoginMode 
+                    ? (authLoading ? 'Logging in...' : 'Log in')
+                    : (authLoading ? 'Creating account...' : 'Create account')
+                  }
                 </button>
                 <button
                   className="btn btn-secondary"

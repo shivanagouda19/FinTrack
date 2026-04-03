@@ -30,7 +30,7 @@ const transporter = nodemailer.createTransport({
 
 const sendEmail = async (to, subject, html) => {
   await transporter.sendMail({
-    from: `"Expense Tracker" <${process.env.EMAIL_USER}>`,
+    from: `"FinTrack" <${process.env.EMAIL_USER}>`,
     to,
     subject,
     html,
@@ -177,40 +177,42 @@ app.post("/signup", async (req, res) => {
     const otpEmailHtml = `
 <!DOCTYPE html>
 <html>
-<body style="margin:0;padding:0;background:#0f172a;font-family:Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f172a;padding:40px 20px;">
+<body style="margin:0;padding:0;background:#f8fafc;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;padding:40px 20px;">
     <tr><td align="center">
-      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#1e293b;border-radius:20px;overflow:hidden;border:1px solid #334155;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;">
         
         <!-- Header -->
-        <tr><td style="background:linear-gradient(135deg,#6366f1,#8b5cf6);padding:32px;text-align:center;">
-          <div style="font-size:40px;margin-bottom:8px;">📧</div>
-          <h1 style="color:#ffffff;margin:0;font-size:22px;font-weight:700;">Verify Your Email</h1>
-          <p style="color:rgba(255,255,255,0.8);margin:8px 0 0;font-size:14px;">Expense Tracker</p>
+        <tr><td style="background:#1e293b;padding:24px 32px;border-bottom:4px solid #6366f1;">
+          <h2 style="color:#ffffff;margin:0;font-size:20px;font-weight:600;letter-spacing:0.5px;">FinTrack</h2>
         </td></tr>
 
         <!-- Body -->
         <tr><td style="padding:32px;">
-          <p style="color:#94a3b8;font-size:15px;margin:0 0 8px;">Hi there,</p>
-          <p style="color:#cbd5e1;font-size:15px;margin:0 0 24px;line-height:1.6;">Welcome! Use the OTP below to verify your email and activate your account.</p>
+          <p style="color:#1e293b;font-size:16px;font-weight:600;margin:0 0 16px;">Email Verification</p>
+          <p style="color:#475569;font-size:14px;line-height:1.7;margin:0 0 8px;">Dear User,</p>
+          <p style="color:#475569;font-size:14px;line-height:1.7;margin:0 0 24px;">Thank you for registering with FinTrack. To complete your account setup, please use the One-Time Password (OTP) provided below.</p>
           
           <!-- OTP Box -->
-          <div style="background:#0f172a;border:2px solid #6366f1;border-radius:16px;padding:24px;text-align:center;margin:0 0 24px;">
-            <p style="color:#94a3b8;font-size:12px;margin:0 0 8px;text-transform:uppercase;letter-spacing:2px;">Your OTP</p>
-            <div style="font-size:42px;font-weight:800;letter-spacing:16px;color:#6366f1;font-family:monospace;">${otp}</div>
-          </div>
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+            <tr><td style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:20px;text-align:center;">
+              <p style="color:#64748b;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;margin:0 0 8px;">Your One-Time Password</p>
+              <p style="color:#6366f1;font-size:36px;font-weight:700;letter-spacing:12px;font-family:monospace;margin:0;">${otp}</p>
+            </td></tr>
+          </table>
 
-          <!-- Expiry warning -->
-          <div style="background:#292524;border-left:4px solid #f59e0b;border-radius:8px;padding:12px 16px;margin:0 0 24px;">
-            <p style="color:#fcd34d;margin:0;font-size:13px;">⏰ This OTP expires in <strong>10 minutes</strong></p>
-          </div>
+          <p style="color:#475569;font-size:14px;line-height:1.7;margin:0 0 8px;">This OTP is valid for <strong>10 minutes</strong> from the time of this email.</p>
+          <p style="color:#475569;font-size:14px;line-height:1.7;margin:0 0 24px;">If you did not initiate this request, please disregard this email. Your account will not be activated without OTP verification.</p>
 
-          <p style="color:#64748b;font-size:13px;margin:0;">If you didn't create an account, you can safely ignore this email.</p>
+          <hr style="border:none;border-top:1px solid #e2e8f0;margin:0 0 24px;" />
+          
+          <p style="color:#94a3b8;font-size:12px;line-height:1.6;margin:0;">For security reasons, please do not share this OTP with anyone. FinTrack will never ask for your OTP via phone or chat.</p>
         </td></tr>
 
         <!-- Footer -->
-        <tr><td style="background:#0f172a;padding:20px;text-align:center;border-top:1px solid #334155;">
-          <p style="color:#475569;font-size:12px;margin:0;">© 2025 Expense Tracker. All rights reserved.</p>
+        <tr><td style="background:#f8fafc;padding:20px 32px;border-top:1px solid #e2e8f0;">
+          <p style="color:#94a3b8;font-size:12px;margin:0 0 4px;">© 2025 FinTrack. All rights reserved.</p>
+          <p style="color:#94a3b8;font-size:12px;margin:0;">This is an automated message. Please do not reply to this email.</p>
         </td></tr>
 
       </table>
@@ -220,7 +222,7 @@ app.post("/signup", async (req, res) => {
 </html>
 `;
 
-    await sendEmail(email, 'Verify Your Email — Expense Tracker', otpEmailHtml);
+    await sendEmail(email, 'Verify Your Email — FinTrack', otpEmailHtml);
 
     res.json({ message: 'OTP sent to your email. Please verify to continue.', email });
   } catch (err) {
@@ -297,40 +299,42 @@ app.post('/resend-otp', async (req, res) => {
     const otpEmailHtml = `
 <!DOCTYPE html>
 <html>
-<body style="margin:0;padding:0;background:#0f172a;font-family:Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f172a;padding:40px 20px;">
+<body style="margin:0;padding:0;background:#f8fafc;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;padding:40px 20px;">
     <tr><td align="center">
-      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#1e293b;border-radius:20px;overflow:hidden;border:1px solid #334155;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;">
         
         <!-- Header -->
-        <tr><td style="background:linear-gradient(135deg,#6366f1,#8b5cf6);padding:32px;text-align:center;">
-          <div style="font-size:40px;margin-bottom:8px;">📧</div>
-          <h1 style="color:#ffffff;margin:0;font-size:22px;font-weight:700;">Verify Your Email</h1>
-          <p style="color:rgba(255,255,255,0.8);margin:8px 0 0;font-size:14px;">Expense Tracker</p>
+        <tr><td style="background:#1e293b;padding:24px 32px;border-bottom:4px solid #6366f1;">
+          <h2 style="color:#ffffff;margin:0;font-size:20px;font-weight:600;letter-spacing:0.5px;">FinTrack</h2>
         </td></tr>
 
         <!-- Body -->
         <tr><td style="padding:32px;">
-          <p style="color:#94a3b8;font-size:15px;margin:0 0 8px;">Hi there,</p>
-          <p style="color:#cbd5e1;font-size:15px;margin:0 0 24px;line-height:1.6;">Welcome! Use the OTP below to verify your email and activate your account.</p>
+          <p style="color:#1e293b;font-size:16px;font-weight:600;margin:0 0 16px;">Email Verification</p>
+          <p style="color:#475569;font-size:14px;line-height:1.7;margin:0 0 8px;">Dear User,</p>
+          <p style="color:#475569;font-size:14px;line-height:1.7;margin:0 0 24px;">Thank you for registering with FinTrack. To complete your account setup, please use the One-Time Password (OTP) provided below.</p>
           
           <!-- OTP Box -->
-          <div style="background:#0f172a;border:2px solid #6366f1;border-radius:16px;padding:24px;text-align:center;margin:0 0 24px;">
-            <p style="color:#94a3b8;font-size:12px;margin:0 0 8px;text-transform:uppercase;letter-spacing:2px;">Your OTP</p>
-            <div style="font-size:42px;font-weight:800;letter-spacing:16px;color:#6366f1;font-family:monospace;">${otp}</div>
-          </div>
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+            <tr><td style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:20px;text-align:center;">
+              <p style="color:#64748b;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;margin:0 0 8px;">Your One-Time Password</p>
+              <p style="color:#6366f1;font-size:36px;font-weight:700;letter-spacing:12px;font-family:monospace;margin:0;">${otp}</p>
+            </td></tr>
+          </table>
 
-          <!-- Expiry warning -->
-          <div style="background:#292524;border-left:4px solid #f59e0b;border-radius:8px;padding:12px 16px;margin:0 0 24px;">
-            <p style="color:#fcd34d;margin:0;font-size:13px;">⏰ This OTP expires in <strong>10 minutes</strong></p>
-          </div>
+          <p style="color:#475569;font-size:14px;line-height:1.7;margin:0 0 8px;">This OTP is valid for <strong>10 minutes</strong> from the time of this email.</p>
+          <p style="color:#475569;font-size:14px;line-height:1.7;margin:0 0 24px;">If you did not initiate this request, please disregard this email. Your account will not be activated without OTP verification.</p>
 
-          <p style="color:#64748b;font-size:13px;margin:0;">If you didn't create an account, you can safely ignore this email.</p>
+          <hr style="border:none;border-top:1px solid #e2e8f0;margin:0 0 24px;" />
+          
+          <p style="color:#94a3b8;font-size:12px;line-height:1.6;margin:0;">For security reasons, please do not share this OTP with anyone. FinTrack will never ask for your OTP via phone or chat.</p>
         </td></tr>
 
         <!-- Footer -->
-        <tr><td style="background:#0f172a;padding:20px;text-align:center;border-top:1px solid #334155;">
-          <p style="color:#475569;font-size:12px;margin:0;">© 2025 Expense Tracker. All rights reserved.</p>
+        <tr><td style="background:#f8fafc;padding:20px 32px;border-top:1px solid #e2e8f0;">
+          <p style="color:#94a3b8;font-size:12px;margin:0 0 4px;">© 2025 FinTrack. All rights reserved.</p>
+          <p style="color:#94a3b8;font-size:12px;margin:0;">This is an automated message. Please do not reply to this email.</p>
         </td></tr>
 
       </table>
@@ -340,7 +344,7 @@ app.post('/resend-otp', async (req, res) => {
 </html>
 `;
 
-    await sendEmail(email, 'New OTP — Expense Tracker', otpEmailHtml);
+    await sendEmail(email, 'New OTP — FinTrack', otpEmailHtml);
 
     res.json({ message: 'New OTP sent to your email.' });
   } catch (err) {
@@ -372,42 +376,42 @@ app.post('/forgot-password', async (req, res) => {
     const resetEmailHtml = `
 <!DOCTYPE html>
 <html>
-<body style="margin:0;padding:0;background:#0f172a;font-family:Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f172a;padding:40px 20px;">
+<body style="margin:0;padding:0;background:#f8fafc;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;padding:40px 20px;">
     <tr><td align="center">
-      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#1e293b;border-radius:20px;overflow:hidden;border:1px solid #334155;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;">
         
         <!-- Header -->
-        <tr><td style="background:linear-gradient(135deg,#6366f1,#8b5cf6);padding:32px;text-align:center;">
-          <div style="font-size:40px;margin-bottom:8px;">🔐</div>
-          <h1 style="color:#ffffff;margin:0;font-size:22px;font-weight:700;">Reset Your Password</h1>
-          <p style="color:rgba(255,255,255,0.8);margin:8px 0 0;font-size:14px;">Expense Tracker</p>
+        <tr><td style="background:#1e293b;padding:24px 32px;border-bottom:4px solid #6366f1;">
+          <h2 style="color:#ffffff;margin:0;font-size:20px;font-weight:600;letter-spacing:0.5px;">FinTrack</h2>
         </td></tr>
 
         <!-- Body -->
         <tr><td style="padding:32px;">
-          <p style="color:#cbd5e1;font-size:15px;margin:0 0 16px;line-height:1.6;">We received a request to reset your password. Click the button below to create a new one.</p>
+          <p style="color:#1e293b;font-size:16px;font-weight:600;margin:0 0 16px;">Password Reset Request</p>
+          <p style="color:#475569;font-size:14px;line-height:1.7;margin:0 0 24px;">We received a request to reset the password associated with your FinTrack account. Click the button below to proceed.</p>
 
           <!-- Reset Button -->
-          <div style="text-align:center;margin:24px 0;">
-            <a href="${resetUrl}" style="display:inline-block;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:12px;font-size:16px;font-weight:700;">Reset Password</a>
-          </div>
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+            <tr><td align="center">
+              <a href="${resetUrl}" style="display:inline-block;background:#6366f1;color:#ffffff;text-decoration:none;padding:12px 32px;border-radius:6px;font-size:14px;font-weight:600;">Reset Password</a>
+            </td></tr>
+          </table>
 
-          <!-- Expiry warning -->
-          <div style="background:#292524;border-left:4px solid #f59e0b;border-radius:8px;padding:12px 16px;margin:0 0 24px;">
-            <p style="color:#fcd34d;margin:0;font-size:13px;">⏰ This link expires in <strong>1 hour</strong></p>
-          </div>
+          <p style="color:#475569;font-size:14px;line-height:1.7;margin:0 0 8px;">This link will expire in <strong>1 hour</strong>. If you did not request a password reset, please ignore this email — your password will remain unchanged.</p>
 
-          <!-- Fallback URL -->
-          <p style="color:#64748b;font-size:12px;margin:0 0 8px;">If the button doesn't work, copy and paste this link:</p>
+          <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;" />
+
+          <p style="color:#64748b;font-size:12px;margin:0 0 4px;">If the button above does not work, copy and paste the link below into your browser:</p>
           <p style="color:#6366f1;font-size:12px;word-break:break-all;margin:0 0 24px;">${resetUrl}</p>
 
-          <p style="color:#64748b;font-size:13px;margin:0;">If you didn't request a password reset, you can safely ignore this email.</p>
+          <p style="color:#94a3b8;font-size:12px;line-height:1.6;margin:0;">For security reasons, this link can only be used once. FinTrack will never ask for your password via phone or chat.</p>
         </td></tr>
 
         <!-- Footer -->
-        <tr><td style="background:#0f172a;padding:20px;text-align:center;border-top:1px solid #334155;">
-          <p style="color:#475569;font-size:12px;margin:0;">© 2025 Expense Tracker. All rights reserved.</p>
+        <tr><td style="background:#f8fafc;padding:20px 32px;border-top:1px solid #e2e8f0;">
+          <p style="color:#94a3b8;font-size:12px;margin:0 0 4px;">© 2025 FinTrack. All rights reserved.</p>
+          <p style="color:#94a3b8;font-size:12px;margin:0;">This is an automated message. Please do not reply to this email.</p>
         </td></tr>
 
       </table>
@@ -416,7 +420,7 @@ app.post('/forgot-password', async (req, res) => {
 </body>
 </html>
 `;
-    await sendEmail(email, 'Reset Your Password — Expense Tracker', resetEmailHtml);
+    await sendEmail(email, 'Reset Your Password — FinTrack', resetEmailHtml);
 
     res.json({ message: 'If this email exists, a reset link has been sent.' });
   } catch (err) {
