@@ -1,5 +1,5 @@
 import { useState } from 'react';
-
+import { Bot } from 'lucide-react';
 const typeStyles = {
   warning: { color: '#ef4444', bg: '#ef444415', border: '#ef444430' },
   good: { color: '#22c55e', bg: '#22c55e15', border: '#22c55e30' },
@@ -83,9 +83,22 @@ export default function AIInsights({ token, expenses, totalReceived, totalSpent 
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: hasLoaded ? '20px' : '0' }}>
         <div>
-          <h3 style={{ margin: '0 0 4px', color: 'var(--text-1)', fontSize: '1.05rem', fontWeight: 700 }}>
-            🤖 AI Budget Advisor
-          </h3>
+          <h3
+  style={{
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    margin: "0 0 8px",
+    color: "var(--text-1)",
+    fontSize: "1.15rem",
+    fontWeight: 700,
+    letterSpacing: "0.3px",
+    lineHeight: 1.2
+  }}
+>
+  <Bot size={24} style={{ color: "var(--accent-1)" }} />
+  AI Budget Advisor
+</h3>
           <p style={{ margin: 0, color: 'var(--text-2)', fontSize: '0.85rem' }}>
             Get personalized insights based on your spending
           </p>

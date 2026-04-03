@@ -157,7 +157,7 @@ export default function Investments() {
 
   if (!connected) return (
     <div className="investments-page">
-      <h2 className="page-title">📈 Investments</h2>
+      <h2 className="page-title">Investments</h2>
       <p className="page-subtitle">Connect your Angel One account to view your portfolio</p>
 
       {/* Token expired banner */}
@@ -222,7 +222,7 @@ export default function Investments() {
     <div className="investments-page">
       <div className="inv-header">
         <div>
-          <h2 className="page-title">📈 Investments</h2>
+          <h2 className="page-title">Investments</h2>
           <p className="page-subtitle">Angel One portfolio via SmartAPI</p>
         </div>
         <button className="angel-disconnect-btn" onClick={disconnect}>Disconnect</button>

@@ -16,27 +16,10 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import "./App.css";
 
-const MoonIcon = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-  </svg>
-);
+import { Sun, Moon } from 'lucide-react';
 
-const SunIcon = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="5"/>
-    <line x1="12" y1="1" x2="12" y2="3"/>
-    <line x1="12" y1="21" x2="12" y2="23"/>
-    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-    <line x1="1" y1="12" x2="3" y2="12"/>
-    <line x1="21" y1="12" x2="23" y2="12"/>
-    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-  </svg>
-);
+const MoonIcon = () => <Moon size={15} />;
+const SunIcon = () => <Sun size={15} />;
 
 function App() {
   const [theme, setTheme] = useState(() => {
@@ -56,6 +39,7 @@ function App() {
   const [totalRecived, setTotalRecived] = useState(0);
   const [formErrors, setFormErrors] = useState({});
   const [currency, setCurrency] = useState('₹');
+  const [showAuthForm, setShowAuthForm] = useState(false);
 
   useEffect(() => { localStorage.setItem("theme", theme); }, [theme]);
 
@@ -86,6 +70,8 @@ function App() {
         setFormErrors={setFormErrors}
         currency={currency}
         setCurrency={setCurrency}
+        showAuthForm={showAuthForm}
+        setShowAuthForm={setShowAuthForm}
       />
     </BrowserRouter>
   );
@@ -116,6 +102,8 @@ function AppContent({
   setFormErrors,
   currency,
   setCurrency,
+  showAuthForm,
+  setShowAuthForm,
 }) {
   const location = useLocation();
   const publicPaths = ['/verify-email', '/forgot-password', '/reset-password'];
@@ -238,15 +226,35 @@ function AppContent({
     if (e.key === "Enter") handleAuthSubmit();
   }
 
+  const navigate = useNavigate();
+
   function logout() {
     localStorage.removeItem("token");
     setToken("");
     setExpenses([]);
     setIncomeList([]);
     setTotalRecived(0);
+    navigate('/about');
   }
 
   if (!token) {
+    // Show public pages for these paths
+    if (location.pathname === '/about' || location.pathname === '/') {
+      return (
+        <div className="app-shell" data-theme={theme}>
+          <About 
+            theme={theme} 
+            toggleTheme={toggleTheme} 
+            onNavigateToAuth={(mode) => {
+              setIsLoginMode(mode === 'login');
+              setShowAuthForm(true);
+              window.history.pushState({}, '', '/auth');
+            }}
+          />
+        </div>
+      );
+    }
+
     if (publicPaths.some(path => location.pathname.startsWith(path))) {
       return (
         <div className="app-shell" data-theme={theme}>
@@ -259,62 +267,80 @@ function AppContent({
       );
     }
 
+    // Show login/signup form for all other paths
+    if (location.pathname === '/auth' || showAuthForm) {
+      return (
+        <div className="app-shell" data-theme={theme}>
+          <div className="app auth-app" style={{ maxWidth: '460px', margin: '0 auto', padding: '40px 20px' }}>
+            {/* <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <button className="btn btn-secondary" onClick={() => { setShowAuthForm(false); window.history.pushState({}, '', '/'); }}>
+                ← Back
+              </button>
+            </div> */}
+
+            <header className="app-header auth-header">
+              <h1>FinTrack</h1>
+              <p>{isLoginMode ? "Welcome back — log in to continue" : "Create your account to get started"}</p>
+            </header>
+
+            <section className="card auth-card">
+              <div className="auth-form">
+                <input
+                  type="email"
+                  placeholder="Email address"
+                  value={email}
+                  onChange={e => { setEmail(e.target.value); setFormErrors(prev => ({ ...prev, email: "" })); }}
+                  onKeyDown={handleAuthKeyDown}
+                  autoComplete="email"
+                />
+                {formErrors.email && <span className="field-error">{formErrors.email}</span>}
+                <input
+                  type="password"
+                  placeholder="Password"
+                  value={password}
+                  onChange={e => { setPassword(e.target.value); setFormErrors(prev => ({ ...prev, password: "" })); }}
+                  onKeyDown={handleAuthKeyDown}
+                  autoComplete={isLoginMode ? "current-password" : "new-password"}
+                />
+                {formErrors.password && <span className="field-error">{formErrors.password}</span>}
+                <button className="btn" onClick={handleAuthSubmit}>
+                  {isLoginMode ? "Log in" : "Create account"}
+                </button>
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => { setIsLoginMode(p => !p); setAuthMessage(""); setFormErrors({}); }}
+                >
+                  {isLoginMode ? "Need an account? Sign up" : "Already have an account? Log in"}
+                </button>
+                {isLoginMode && (
+                  <button
+                    className="auth-link-btn"
+                    onClick={() => window.location.href = '/forgot-password'}
+                  >
+                    Forgot Password?
+                  </button>
+                )}
+                {authMessage && <p className="auth-message">{authMessage}</p>}
+              </div>
+            </section>
+          </div>
+        </div>
+      );
+    }
+
+    // Default: redirect to about page
+    window.history.pushState({}, '', '/about');
     return (
       <div className="app-shell" data-theme={theme}>
-        <div className="app auth-app" style={{ maxWidth: '460px', margin: '0 auto', padding: '40px 20px' }}>
-          <div style={{ marginBottom: '20px', textAlign: 'right' }}>
-            <button className="btn btn-secondary theme-toggle" onClick={toggleTheme}>
-              {theme === "dark" ? <SunIcon /> : <MoonIcon />}
-              {theme === "dark" ? "Light" : "Dark"}
-            </button>
-          </div>
-
-          <header className="app-header auth-header">
-            <h1>Expense Tracker</h1>
-            <p>{isLoginMode ? "Welcome back — log in to continue" : "Create your account to get started"}</p>
-          </header>
-
-          <section className="card auth-card">
-            <div className="auth-form">
-              <input
-                type="email"
-                placeholder="Email address"
-                value={email}
-                onChange={e => { setEmail(e.target.value); setFormErrors(prev => ({ ...prev, email: "" })); }}
-                onKeyDown={handleAuthKeyDown}
-                autoComplete="email"
-              />
-              {formErrors.email && <span className="field-error">{formErrors.email}</span>}
-              <input
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={e => { setPassword(e.target.value); setFormErrors(prev => ({ ...prev, password: "" })); }}
-                onKeyDown={handleAuthKeyDown}
-                autoComplete={isLoginMode ? "current-password" : "new-password"}
-              />
-              {formErrors.password && <span className="field-error">{formErrors.password}</span>}
-              <button className="btn" onClick={handleAuthSubmit}>
-                {isLoginMode ? "Log in" : "Create account"}
-              </button>
-              <button
-                className="btn btn-secondary"
-                onClick={() => { setIsLoginMode(p => !p); setAuthMessage(""); setFormErrors({}); }}
-              >
-                {isLoginMode ? "Need an account? Sign up" : "Already have an account? Log in"}
-              </button>
-              {isLoginMode && (
-                <button
-                  className="auth-link-btn"
-                  onClick={() => window.location.href = '/forgot-password'}
-                >
-                  Forgot Password?
-                </button>
-              )}
-              {authMessage && <p className="auth-message">{authMessage}</p>}
-            </div>
-          </section>
-        </div>
+        <About 
+          theme={theme} 
+          toggleTheme={toggleTheme} 
+          onNavigateToAuth={(mode) => {
+            setIsLoginMode(mode === 'login');
+            setShowAuthForm(true);
+            window.history.pushState({}, '', '/auth');
+          }}
+        />
       </div>
     );
   }
@@ -342,7 +368,6 @@ function AppContent({
           <Route path="/calendar" element={<CalendarPage token={token} onUnauthorized={logout} expenses={expenses} currency={currency} />} />
           <Route path="/goals" element={<Goals token={token} onUnauthorized={logout} currency={currency} />} />
           <Route path="/investments" element={<Investments />} />
-          <Route path="/about" element={<About />} />
           <Route path="/profile" element={
             <Profile
               token={token}

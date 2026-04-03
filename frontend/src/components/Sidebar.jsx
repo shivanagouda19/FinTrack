@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom';
+import { LayoutDashboard, Receipt, Wallet, Bell, Calendar, Target, TrendingUp, User } from 'lucide-react';
 
 function Sidebar() {
   return (
@@ -6,50 +7,46 @@ function Sidebar() {
       {/* App title */}
       <div style={{ marginBottom: '32px' }}>
         <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-1)', margin: 0 }}>
-          Expense Tracker
+          FinTrack
         </h2>
       </div>
 
       {/* Top nav links — takes all available space */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
         <NavLink to="/" end className="nav-link">
-          <span>📊</span>
+          <LayoutDashboard size={18} />
           <span>Dashboard</span>
         </NavLink>
         <NavLink to="/expenses" className="nav-link">
-          <span>💸</span>
+          <Receipt size={18} />
           <span>Expenses</span>
         </NavLink>
         <NavLink to="/income" className="nav-link">
-          <span>💰</span>
+          <Wallet size={18} />
           <span>Income</span>
         </NavLink>
         <NavLink to="/upcoming" className="nav-link">
-          <span>🔔</span>
+          <Bell size={18} />
           <span>Upcoming</span>
         </NavLink>
         <NavLink to="/calendar" className="nav-link">
-          <span>📅</span>
+          <Calendar size={18} />
           <span>Calendar</span>
         </NavLink>
         <NavLink to="/goals" className="nav-link">
-          <span>🎯</span>
+          <Target size={18} />
           <span>Goals</span>
         </NavLink>
         <NavLink to="/investments" className="nav-link">
-          <span>📈</span>
+          <TrendingUp size={18} />
           <span>Investments</span>
         </NavLink>
       </div>
 
       {/* Profile at bottom */}
       <div style={{ borderTop: '1px solid var(--border)', paddingTop: '12px', marginTop: '12px' }}>
-        <NavLink to="/about" className="nav-link">
-          <span>ℹ️</span>
-          <span>About</span>
-        </NavLink>
         <NavLink to="/profile" className="nav-link">
-          <span>👤</span>
+          <User size={18} />
           <span>Profile</span>
         </NavLink>
       </div>

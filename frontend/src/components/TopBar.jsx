@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Bell, Sun, Moon, CheckCircle } from 'lucide-react';
 
 export default function TopBar({ token, alerts, theme, toggleTheme }) {
   const [open, setOpen] = useState(false);
@@ -61,7 +62,7 @@ export default function TopBar({ token, alerts, theme, toggleTheme }) {
             cursor: 'pointer',
           }}
         >
-          {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
+          {theme === 'dark' ? <><Sun size={14} /> Light</> : <><Moon size={14} /> Dark</>}
         </button>
 
         <div ref={dropdownRef} style={{ position: 'relative' }}>
@@ -76,13 +77,12 @@ export default function TopBar({ token, alerts, theme, toggleTheme }) {
             width: '40px',
             height: '40px',
             cursor: 'pointer',
-            fontSize: '1.2rem',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
           }}
         >
-          🔔
+          <Bell size={20} />
           {alerts.length > 0 && (
             <span style={{
               position: 'absolute',
@@ -129,8 +129,9 @@ export default function TopBar({ token, alerts, theme, toggleTheme }) {
             </div>
 
             {alerts.length === 0 ? (
-              <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-2)' }}>
-                🎉 No urgent payments!
+              <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-2)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                <CheckCircle size={32} />
+                <span>No urgent payments!</span>
               </div>
             ) : (
               <>

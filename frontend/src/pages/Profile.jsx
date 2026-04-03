@@ -76,6 +76,10 @@ export default function Profile({ token, onUnauthorized, onLogout, setExpenses, 
       setCurrency(newCurrency);
     } catch (err) {}
   };
+const handleLogout = () => {
+    onLogout();
+    navigate("/About");
+  };
 
   const handleSendPasswordReset = async () => {
     setPasswordResetLoading(true);
@@ -140,12 +144,12 @@ export default function Profile({ token, onUnauthorized, onLogout, setExpenses, 
   }
 
   const dangerButtons = [
-    { label: '🗑️ Clear All Expenses', type: 'expenses', color: '#f97316' },
-    { label: '💰 Reset Income to ₹0', type: 'income', color: '#f97316' },
-    { label: '📅 Clear Upcoming Payments', type: 'upcoming', color: '#f97316' },
-    { label: '🎯 Clear All Goals', type: 'goals', color: '#f97316' },
-    { label: '⚠️ Reset Everything', type: 'all', color: '#ef4444' },
-    { label: '🔴 Delete My Account', type: 'account', color: '#ef4444' },
+    { label: 'Clear All Expenses', type: 'expenses', color: '#f97316' },
+    { label: 'Reset Income to ₹0', type: 'income', color: '#f97316' },
+    { label: 'Clear Upcoming Payments', type: 'upcoming', color: '#f97316' },
+    { label: 'Clear All Goals', type: 'goals', color: '#f97316' },
+    { label: 'Reset Everything', type: 'all', color: '#ef4444' },
+    { label: 'Delete My Account', type: 'account', color: '#ef4444' },
   ];
 
   return (
@@ -238,7 +242,7 @@ export default function Profile({ token, onUnauthorized, onLogout, setExpenses, 
           </div>
           <button
             className="btn btn-secondary"
-            onClick={onLogout}
+            onClick={handleLogout}
             style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
           >
             ↪ Logout
@@ -247,7 +251,7 @@ export default function Profile({ token, onUnauthorized, onLogout, setExpenses, 
       </Section>
 
       {/* Danger Zone */}
-      <Section title="⚠️ Danger Zone">
+      <Section title="Danger Zone">
         <div style={{ display: 'grid', gap: '12px' }}>
           {dangerButtons.map(({ label, type, color }) => (
             <div key={type} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderRadius: 'var(--radius-md)', border: `1px solid ${color}33`, background: `${color}08` }}>
