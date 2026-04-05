@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-
-const API = 'http://localhost:5000';
+import API from '../config';
 
 const STEPS = [
   {

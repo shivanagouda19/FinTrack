@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Bot } from 'lucide-react';
+import API from '../config';
 const typeStyles = {
   warning: { color: '#ef4444', bg: '#ef444415', border: '#ef444430' },
   good: { color: '#22c55e', bg: '#22c55e15', border: '#22c55e30' },
@@ -18,8 +19,8 @@ export default function AIInsights({ token, expenses, totalReceived, totalSpent 
     setIsLoading(true);
     setError('');
 
-    const endpoint = '/api/ai/insights';
-    console.log('Fetching from:', '/api/ai/insights');
+    const endpoint = `${API}/ai/insights`;
+    console.log('Fetching from:', endpoint);
 
     try {
       const response = await fetch(endpoint, {
