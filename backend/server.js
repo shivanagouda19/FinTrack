@@ -12,28 +12,16 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const speakeasy = require('speakeasy');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const crypto = require('crypto');
 const JWT_SECRET = process.env.JWT_SECRET || "SECRET_KEY";
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const dburl = process.env.DBURL
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false,
-  family: 4,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-  tls: {
-    rejectUnauthorized: false,
-  },
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const sendEmail = async (to, subject, html) => {
-  await transporter.sendMail({
-    from: `"FinTrack" <${process.env.EMAIL_USER}>`,
+  await resend.emails.send({
+    from: 'FinTrack <onboarding@resend.dev>',
     to,
     subject,
     html,
