@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useSearchParams, useNavigate } from 'react-router-dom';
-
-const API = 'http://localhost:5000';
+import API from '../config';
 
 export default function VerifyEmail() {
   const location = useLocation();

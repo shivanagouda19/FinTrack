@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-
+import API from '../config';
 import { Bell, CheckCircle } from 'lucide-react';
 
 const statusColor = {
@@ -29,7 +29,7 @@ export default function UpcomingPayments({ token, onUnauthorized, onPaymentChang
   const [editErrors, setEditErrors] = useState({});
 
   useEffect(() => {
-    fetch('http://localhost:5000/upcoming', {
+    fetch(`${API}/upcoming`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => {
@@ -58,7 +58,7 @@ export default function UpcomingPayments({ token, onUnauthorized, onPaymentChang
       return;
     }
     setFormErrors({});
-    const res = await fetch('http://localhost:5000/upcoming', {
+    const res = await fetch(`${API}/upcoming`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ name, amount, dueDate, type })
@@ -72,7 +72,7 @@ export default function UpcomingPayments({ token, onUnauthorized, onPaymentChang
   }
 
   async function markPaid(id) {
-    const res = await fetch(`http://localhost:5000/upcoming/${id}`, {
+    const res = await fetch(`${API}/upcoming/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ status: 'Paid' })
@@ -110,7 +110,7 @@ export default function UpcomingPayments({ token, onUnauthorized, onPaymentChang
       return;
     }
     setEditErrors({});
-    const res = await fetch(`http://localhost:5000/upcoming/${id}`, {
+    const res = await fetch(`${API}/upcoming/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ 
@@ -134,7 +134,7 @@ export default function UpcomingPayments({ token, onUnauthorized, onPaymentChang
   }
 
   async function deletePayment(id) {
-    const res = await fetch(`http://localhost:5000/upcoming/${id}`, {
+    const res = await fetch(`${API}/upcoming/${id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` }
     });

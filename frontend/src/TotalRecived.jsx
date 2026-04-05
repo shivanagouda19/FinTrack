@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import API from './config';
 import { Wallet } from 'lucide-react';
 
 const SOURCES = [
@@ -44,7 +45,7 @@ export default function TotalRecived({ token, onUnauthorized, setTotalRecived, i
 
   // Load income list from backend
   useEffect(() => {
-    fetch("http://localhost:5000/income", {
+    fetch(`${API}/income`, {
       headers: {
         Authorization: `Bearer ${token}`
       }
@@ -90,7 +91,7 @@ export default function TotalRecived({ token, onUnauthorized, setTotalRecived, i
       source: newSource,
     };
 
-    const res = await fetch("http://localhost:5000/income", {
+    const res = await fetch(`${API}/income`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -125,7 +126,7 @@ export default function TotalRecived({ token, onUnauthorized, setTotalRecived, i
 
   // Delete income
   async function deleteIncome(id) {
-    const res = await fetch(`http://localhost:5000/income/${id}`, {
+    const res = await fetch(`${API}/income/${id}`, {
       method: "DELETE",
       headers: {
         Authorization: `Bearer ${token}`
@@ -173,7 +174,7 @@ export default function TotalRecived({ token, onUnauthorized, setTotalRecived, i
       source: editSource,
     };
 
-    const res = await fetch(`http://localhost:5000/income/${id}`, {
+    const res = await fetch(`${API}/income/${id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",

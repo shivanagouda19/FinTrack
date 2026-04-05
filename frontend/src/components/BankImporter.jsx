@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import API from '../config';
 
 export default function BankImporter({ token, onImportExpenses, onImportIncome, onClose }) {
   const [statement, setStatement] = useState('');
@@ -14,7 +15,7 @@ export default function BankImporter({ token, onImportExpenses, onImportIncome, 
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('http://localhost:5000/ai/import', {
+      const res = await fetch(`${API}/ai/import`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -50,14 +51,14 @@ export default function BankImporter({ token, onImportExpenses, onImportIncome, 
     try {
       const [expenseResults, incomeResults] = await Promise.all([
         Promise.all(debits.map(t =>
-          fetch('http://localhost:5000/expenses', {
+          fetch(`${API}/expenses`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
             body: JSON.stringify({ title: t.title, amount: t.amount, category: t.category || 'Other' })
           }).then(r => r.json())
         )),
         Promise.all(credits.map(t =>
-          fetch('http://localhost:5000/income', {
+          fetch(`${API}/income`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
             body: JSON.stringify({ title: t.title, amount: t.amount, source: t.source || 'Other' })

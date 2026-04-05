@@ -15,6 +15,7 @@ import VerifyEmail from './pages/VerifyEmail';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import "./App.css";
+import API from './config';
 
 import { Sun, Moon } from 'lucide-react';
 
@@ -125,7 +126,7 @@ function AppContent({
 
   function fetchAlerts() {
     if (!token) return;
-    fetch('http://localhost:5000/upcoming', {
+    fetch(`${API}/upcoming`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => res.json())
@@ -148,7 +149,7 @@ function AppContent({
 
   useEffect(() => {
     if (!token) return;
-    fetch('http://localhost:5000/profile', {
+    fetch(`${API}/profile`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => res.json())
@@ -160,7 +161,7 @@ function AppContent({
     if (!token) return;
 
     // Fetch expenses
-    fetch('http://localhost:5000/expenses', {
+    fetch(`${API}/expenses`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => res.status === 401 ? logout() : res.json())
@@ -168,7 +169,7 @@ function AppContent({
       .catch(() => {});
 
     // Fetch income and calculate total
-    fetch('http://localhost:5000/income', {
+    fetch(`${API}/income`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => res.status === 401 ? logout() : res.json())
@@ -207,7 +208,7 @@ function AppContent({
     setAuthLoading(true);
     try {
       const endpoint = isLoginMode ? "login" : "signup";
-      const response = await fetch(`http://localhost:5000/${endpoint}`, {
+      const response = await fetch(`${API}/${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim(), password })

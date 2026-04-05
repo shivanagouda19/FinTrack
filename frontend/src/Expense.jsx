@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import BankImporter from './components/BankImporter';
+import API from './config';
 import { FileText, Download, Inbox } from 'lucide-react';
 
 const CATEGORIES = [
@@ -54,7 +55,7 @@ export default function Expense({ token, onUnauthorized, expenses, setExpenses, 
 
   // load expenses from backend
   useEffect(() => {
-    fetch("http://localhost:5000/expenses", {
+    fetch(`${API}/expenses`, {
       headers: {
         Authorization: `Bearer ${token}`
       }
@@ -99,7 +100,7 @@ export default function Expense({ token, onUnauthorized, expenses, setExpenses, 
       category: newCategory,
     };
 
-    const res = await fetch("http://localhost:5000/expenses", {
+    const res = await fetch(`${API}/expenses`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -131,7 +132,7 @@ export default function Expense({ token, onUnauthorized, expenses, setExpenses, 
 
   // delete from backend
   async function deleteExpense(id) {
-    const res = await fetch(`http://localhost:5000/expenses/${id}`, {
+    const res = await fetch(`${API}/expenses/${id}`, {
       method: "DELETE",
       headers: {
         Authorization: `Bearer ${token}`
@@ -180,7 +181,7 @@ export default function Expense({ token, onUnauthorized, expenses, setExpenses, 
       category: editCategory,
     };
 
-    const res = await fetch(`http://localhost:5000/expenses/${id}`, {
+    const res = await fetch(`${API}/expenses/${id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import API from '../config';
 
 function Section({ title, children }) {
   return (
@@ -50,7 +51,7 @@ export default function Profile({ token, onUnauthorized, onLogout, setExpenses, 
   const [passwordResetError, setPasswordResetError] = useState('');
 
   useEffect(() => {
-    fetch('http://localhost:5000/profile', {
+    fetch(`${API}/profile`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => {
@@ -65,7 +66,7 @@ export default function Profile({ token, onUnauthorized, onLogout, setExpenses, 
 
   const handleCurrencyChange = async (newCurrency) => {
     try {
-      await fetch('http://localhost:5000/profile/currency', {
+      await fetch(`${API}/profile/currency`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -85,7 +86,7 @@ const handleLogout = () => {
     setPasswordResetLoading(true);
     setPasswordResetError('');
     try {
-      const res = await fetch('http://localhost:5000/forgot-password', {
+      const res = await fetch(`${API}/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
@@ -117,11 +118,11 @@ const handleLogout = () => {
         setConfirm(null);
         if (type === 'all') {
           await Promise.all([
-            fetch('http://localhost:5000/expenses/all', { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }),
-            fetch('http://localhost:5000/received/reset', { method: 'PUT', headers: { Authorization: `Bearer ${token}` } }),
-            fetch('http://localhost:5000/upcoming/all', { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }),
-            fetch('http://localhost:5000/goals/all', { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }),
-            fetch('http://localhost:5000/income/all', { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }),
+            fetch(`${API}/expenses/all`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }),
+            fetch(`${API}/received/reset`, { method: 'PUT', headers: { Authorization: `Bearer ${token}` } }),
+            fetch(`${API}/upcoming/all`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }),
+            fetch(`${API}/goals/all`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }),
+            fetch(`${API}/income/all`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }),
           ]);
           setExpenses([]);
           setTotalRecived(0);
@@ -129,7 +130,7 @@ const handleLogout = () => {
           setSuccessMsg('All data has been reset successfully!');
           return;
         }
-        const res = await fetch(`http://localhost:5000${actions[type].url}`, {
+        const res = await fetch(`${API}${actions[type].url}`, {
           method: actions[type].method,
           headers: { Authorization: `Bearer ${token}` }
         });

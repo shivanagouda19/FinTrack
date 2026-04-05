@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
+import API from '../config';
 import { Bell, Receipt, Inbox } from 'lucide-react';
 
 export default function CalendarPage({ token, onUnauthorized, expenses = [], currency = '₹' }) {
@@ -11,7 +12,7 @@ export default function CalendarPage({ token, onUnauthorized, expenses = [], cur
   const [activeTab, setActiveTab] = useState('payments');
 
   useEffect(() => {
-    fetch('http://localhost:5000/upcoming', {
+    fetch(`${API}/upcoming`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => {

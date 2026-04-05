@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import API from '../config';
 import { Target, Plus, X, Lightbulb, CheckCircle } from 'lucide-react';
 
 const GOAL_CATEGORIES = ['Travel', 'Electronics', 'Emergency', 'Education', 'Health', 'Other'];
@@ -54,7 +55,7 @@ export default function Goals({ token, onUnauthorized, currency = '₹' }) {
   const [addMoneyError, setAddMoneyError] = useState('');
 
   useEffect(() => {
-    fetch('http://localhost:5000/goals', {
+    fetch(`${API}/goals`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => {
@@ -89,7 +90,7 @@ export default function Goals({ token, onUnauthorized, currency = '₹' }) {
       return;
     }
     setFormErrors({});
-    const res = await fetch('http://localhost:5000/goals', {
+    const res = await fetch(`${API}/goals`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ name, targetAmount, savedAmount: savedAmount || 0, category, targetDate })
@@ -116,7 +117,7 @@ export default function Goals({ token, onUnauthorized, currency = '₹' }) {
     const goal = goals.find(g => g._id === id);
     const newSaved = goal.savedAmount + Number(addMoneyAmount);
     const completed = newSaved >= goal.targetAmount;
-    const res = await fetch(`http://localhost:5000/goals/${id}`, {
+    const res = await fetch(`${API}/goals/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ savedAmount: newSaved, completed })
@@ -130,7 +131,7 @@ export default function Goals({ token, onUnauthorized, currency = '₹' }) {
   }
 
   async function deleteGoal(id) {
-    const res = await fetch(`http://localhost:5000/goals/${id}`, {
+    const res = await fetch(`${API}/goals/${id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` }
     });
@@ -157,7 +158,7 @@ export default function Goals({ token, onUnauthorized, currency = '₹' }) {
       return;
     }
     setEditErrors({});
-    const res = await fetch(`http://localhost:5000/goals/${editingGoal._id}`, {
+    const res = await fetch(`${API}/goals/${editingGoal._id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({
